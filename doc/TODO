@@ -1,0 +1,7 @@
+ ☐ grid synced with the graph (as a background)
+   - detect the area size
+   - create grid 
+   - fit the grid
+   - fit the graph
+   - size change listener (grid spacing changes depending on width?)
+
