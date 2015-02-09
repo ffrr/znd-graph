@@ -1,14 +1,10 @@
-// to depend on a bower installed component:
-// define(['bower_components/componentName/file'])
-
 define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
-
-
 
 	var color = d3.scale.category20(), 
 		yearStart = function(year) { return new Date(year, 0, 1); },
 		yearMid = function(year) { return new Date(year, 6, 1); },
-		yearEnd = function(year) { return new Date(year, 11, 31); };
+		yearEnd = function(year) { return new Date(year, 11, 31); },
+		sum = function(sum, curr) { return (sum || 0) + curr };
 
 	
 	var scaleFor = function(scale) { return function(d) { return scale.call(window, d); }};
@@ -16,7 +12,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 
 	var applyMargins = function(config, base) {
       	var g = base.append("g")
-      		.attr("transform", "translate(" + (config.margin.left + (config.padding.left || 0)) + "," + (config.margin.top + (config.padding.top || 0)) + ")")
+      		.attr("transform", "translate(" + (config.margin.left) + "," + (config.margin.top) + ")")
       	return g;
 
 	},  applySizing = function(config, base) {
@@ -27,9 +23,6 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
     };
 
 
-
-
-
 	var paddedTimeScale = function(config, data) {			
 			return d3.time.scale()
 					.domain([_.first(data.x), yearStart( _.last(data.x).getFullYear() + 1)])
@@ -38,7 +31,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		},
 
 		createVerticalLines = function(config, container, scale) {
-			container.selectAll("line.vert").data(scale.ticks()).enter()
+			container.selectAll("line.vert").data(scale.ticks(arguments[3])).enter()
 			    .append("line")
 			        .attr({ "y1" : 0, "y2" : config.height,
 			            "x1" : scaleFor(scale),
@@ -72,7 +65,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 			timeAxis: d3.svg.axis().scale(this.scale).orient("bottom"),
 			sumAxis: d3.svg.axis().scale(this.scale).orient("bottom")
 	 			.tickFormat(function(d, index) {
-		 			return me.data.y[index].reduce(function(memo, curr) { return memo + curr; }) + me.suffix;
+		 			return me.data.y[index].reduce(sum) + me.suffix;
 	 		}),
 			renderSums: true,
 	 		textPadding: { top: 40 }
@@ -117,56 +110,17 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	]};
 
 
-
-	var points = { 
-		series: ["Plastika Nitra", "Prvá tunelárska"],
-		x: [2005, 2006, 2007, 2008, 2009, 2010] ,
-		y: [[50, 10], [30, 20], [20, 10], [50, 20], [20, 15], [220, 13]],
-		timeline: [[
-			{ position: "Štatutár", ranges: [[2005, 2008]] },
-			{ position: "Zástupca riaditeľa", ranges: [[2008, 2009]] }
-		],[
-			{ position: "Štatutár", ranges: [[2005, 2007], [2009, 2010]] },
-			{ position: "Zástupca riaditeľa", ranges: [[2005, 2008]] }
-		]]
-	}; 
-
-	points.x = points.x.map(function(year) {
-		return yearStart(year);
-	});
-
-	// points.timeline = points.timeline.map(function(series) {
-	// 	return series.map(function(position) { 
-	// 		return _.assign(position, { ranges: 
-	// 			position.ranges.map(function(range) { return [yearStart(range[0]), yearStart(range[1])]; }) });
-	// 	});
-	// });
-
-	var config = {
-		margin: { left: 20, top: 50, bottom: 0, right: 20},
-		padding: {},
-		width: 960, height: 320,
-		amountTickSuffix: " mil €"
-	};
-
 	var createAreaGraph = function(config, data) {
 		
 		var shift = config.width / (data.x.length), 
 			volumes = data.volumesByYear,
 			start = _.first(data.x), end = _.last(data.x),
-			max = _.max(
-				_.map(data.y, 
-					function(item) { 
-						return _.reduce(item, 
-							function(sum, curr) { return sum + curr; })
-					}
-				)
-			) * 1.2,
-
+			//get maximum per all points cross-series - multiplication is because of a certain padding from above
+			max = _.max(_.map(data.y, function(item) { return _.reduce(item, sum) })) * 1.6,
 			amountTickSuffix = config.amountTickSuffix,
-			axisPadding = 100, 
+			xAxisPadding = 100, 
 			yTicks = 4,		
-			innerWidth = config.width - shift, innerHeight = config.height - axisPadding;
+			innerWidth = config.width - shift, innerHeight = config.height - (xAxisPadding);
 
 		//axis scales
 
@@ -183,13 +137,24 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 
 		var canvas = d3.select("#graph").append("svg").attr("class", "canvas-area"),
 			grid = applySizing(config, canvas),
-			graph = applySizing(_.assign(config, { padding: { left: shift/2 }}), canvas);
+			graph = applySizing(
+				_.assign(config, { 
+					margin: _.assign(_.clone(config.margin), { 
+						left: config.margin.left + shift/2 
+					}) 
+				}), canvas);
 
-		
-		createHorizontalLines(_.assign(config, { height: innerHeight }), grid, amountScale, yTicks);
+		canvas.append("text")
+			.attr("class", "heading")
+			.attr("y", 40)
+			.attr("x", config.width / 2)
+			.attr("text-anchor", "middle")
+			.text("Úspešnosť firmy v tendroch za jednotlivé roky");
+
+		createHorizontalLines(_.assign(config, { height: innerHeight}), grid, amountScale, yTicks);
 		
 
-		createVerticalLines(_.assign(config, { height: config.height + axisPadding  }), grid, paddedTimeScale(config, data));
+		createVerticalLines(_.assign(config, { height: config.height + xAxisPadding }), grid, paddedTimeScale(config, data));
 			
 		// area graph
 		var area = d3.svg.area()
@@ -364,18 +329,6 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	};
 
 
-	createAreaGraph(config, points);
-	
-
-	var timelineConfig = {
-		margin: _.assign(config.margin, { top: 0 }),
-		width: config.width,
-		height: 300,
-		padding: {},
-		tipCompensation: 4,
-		labelPadding: 10
-	};
-
 	// var points = { 
 	// 	series: ["Plastika Nitra", "Prvá tunelárska"],
 	// 	x: [2005, 2006, 2007, 2008, 2009, 2010] ,
@@ -410,6 +363,13 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 
 			color.domain(data.series);
 
+			canvas.append("text")
+				.attr("class", "heading")
+				.attr("y", 40)
+				.attr("x", config.width / 2)
+				.attr("text-anchor", "middle")
+				.text("Vystupovanie osoby vo firmách");
+
 			createVerticalLines(config, grid, paddedTimeScale(config, data));
 
 			var denormalizedSeriesByPosition = _.flatten(data.timeline.map(function(item, seriesIndex) {
@@ -425,7 +385,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 			var rangeKey = function(item) { return item.series + item.position; },
 				yScale = d3.scale.ordinal()
 					.domain(denormalizedSeriesByPosition.map(rangeKey))
-					.rangePoints([40, config.height - 120]),
+					.rangePoints([config.padding.top + 30, config.height - (config.padding.top + 60)]),
 				verticalPosition = function(d) { return yScale(rangeKey(d)); };
 
 
@@ -477,59 +437,111 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		   	}).pos(shift/2, config.height - 100).render();
 	};
 
-	createTimeline(timelineConfig, points);
+	var createHorizontalBarChart = function(config, data) {
 
-
-	var createHorizontalBarChart = function() {
-		var config = {
-			margin: { left: 20, top: 0, bottom: 0, right: 20},
-			width: 960,
-			height: 40,
-			padding: { left: 0 }
-		};
-
-		var aggregate = volumes.reduce(function(memo, curr) {
-			
-			curr.values.forEach(function(value, index) {
-				if(!memo[index]) { memo[index] = 0 };
-				memo[index] += value;
-			});
-
-			return memo;
-		},[]),
-			total = aggregate.reduce(function(sum, curr) { return (sum || 0) + curr });
-
+		var aggregate = _.zip.apply(null, data.y).map(function(arr) { //get the aggregated sum of each series
+			return _.reduce(arr, sum);
+		}),
+			total = _.reduce(aggregate, sum);
 
 		var barData = aggregate.map(function(item, index) {
-			return { sum: item, series: data.companies[index] }
+			return { sum: item, series: data.series[index] }
 		});
 
-		var timeScale = d3.scale.linear()
+		barData.map(function(item, index) {
+			return _.assign(item, { runningTotal: index > 0 ? (item.sum + barData[index - 1].runningTotal):item.sum, })
+		});
+
+		console.log(barData);
+
+		var xScale = d3.scale.linear()
 			.domain([0, total])
 			.range([0, config.width]);
 
-		var barChart = applySizing(config, d3.select("#graph").append("svg")).attr("class", "graph-bar");
-
-		//build barchart
+		var barChart = applySizing(config, d3.select("#graph").append("svg").attr("class", "canvas-barchart"));
 
 		barChart.selectAll(".segment").data(barData).enter()
 			.append("rect")
-			.attr("x", function(d, index) { return index > 0 ? xScale(barData[index - 1].sum) : 0; })
+			.attr("x", function(d, index) { return xScale(d.runningTotal - d.sum); })
 			.attr("width", function(d) { return xScale(d.sum); })
-			.attr("height", 30)
+			.attr("height", config.height)
 			.attr("y", 0)
-			.attr("fill", function(d) { return color(d.series); });
-					
-		//build gridlines
+			.attr("fill", function(d) { return color(d.series); });					
 
+		createVerticalLines(_.assign(config, { left: 0, right: 0, top: 0}), barChart, xScale, 26);
+
+		var axis = d3.svg.axis().scale(xScale).orient("bottom").tickFormat(function(d) {
+	 			return d + config.amountTickSuffix;
+ 		}).tickValues([0, total]);
+
+    	barChart.append("g").attr("class", "axis-x")
+			.call(axis)
+			.attr("transform", "translate(0, "+ config.height +")")
+			.selectAll("text")
+			.attr("y", 10)
+			.style("text-anchor", function(d) { return d == 0 ? "start":"end"; });
 	};
 
 
-	//createTimeline();
+	////
 
-	//createHorizontalBarChart();
+	var points = { 
+		series: ["Plastika Nitra", "Prvá tunelárska", "Váhostav"],
+		x: [2005, 2006, 2007, 2008, 2009, 2010, 2011] ,
+		y: [[50, 10, 20], [60, 10, 40], [20, 70, 15], [50, 20, 28], [20, 15, 30], [150, 13, 50 ], [100, 60, 40]],
+		timeline: [[
+			{ position: "Štatutár", ranges: [[2005, 2008]] },
+			{ position: "Zástupca riaditeľa", ranges: [[2008, 2009]] }
+		],[
+			{ position: "Štatutár", ranges: [[2005, 2007], [2009, 2010]] },
+			{ position: "Zástupca riaditeľa", ranges: [[2005, 2008]] }
+		],[
+			{ position: "Kotolník", ranges: [[2005, 2011]] },
+		]]
+	}; 
 
+	points.x = points.x.map(function(year) {
+		return yearStart(year);
+	});
 
+	// points.timeline = points.timeline.map(function(series) {
+	// 	return series.map(function(position) { 
+	// 		return _.assign(position, { ranges: 
+	// 			position.ranges.map(function(range) { return [yearStart(range[0]), yearStart(range[1])]; }) });
+	// 	});
+	// });
+	
+	var config = {
+		margin: { left: 20, top: 0, bottom: 0, right: 20},
+		padding: {},
+		width: 960, height: 400,
+		amountTickSuffix: " mil €"
+	};
 
+	
+	var timelineConfig = {
+		margin: _.assign(_.clone(config.margin), { top: 0 }),
+		width: config.width,
+		height: 360,
+		padding: { top: 60, bottom: 0},
+		tipCompensation: 4,
+		labelPadding: 10
+	};
+
+	
+	var barChartConfig = {
+		margin: _.assign(_.clone(config.margin), { top: 30, bottom: 40 }),
+		width: config.width,
+		height: 30,
+		padding: { left: 0 },
+		amountTickSuffix: config.amountTickSuffix
+	};
+
+	
+	createHorizontalBarChart(barChartConfig, points);
+	
+	createAreaGraph(config, points);
+
+	createTimeline(timelineConfig, points);
 
 });

@@ -8,7 +8,8 @@ require.config({
     "c3": "../bower_components/c3/c3",
     "d3-tip": "../bower_components/d3-tip/index",
     "lodash": "../bower_components/lodash/lodash.min"
-  }
+  },
+  urlArgs: "bust=" + (new Date()).getTime()
 });
 
 if (!window.requireTestMode) {

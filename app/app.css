@@ -1,13 +1,21 @@
-#container {
-	background-color: #1F5D6E;
-	position: relati<;
-	height: 920px;
+body {
+  margin: 0;
 }
 
-#grid line, .canvas-area line, .canvas-timeline line, .bar {
+#container {
+	background-color: #1F5D6E;
+	position: relative;
+}
+
+.canvas-area line, .canvas-timeline line, .bar, .canvas-barchart line {
 	stroke: #317183;
   stroke-width: 1px;
 	shape-rendering: crispEdges;
+}
+
+.canvas-barchart line {
+  stroke: black;
+  stroke-opacity: 0.1;
 }
 
 line.bar-bg, line.bar {
@@ -22,12 +30,16 @@ line.bar {
 }
 
 
-#grid, #graph {
-	position: absolute;
-	padding: 0;
+#graph {
+	position: relative;
+	margin: 0;
 	top: 0px;
 	z-index: 10;
 	background-color: #1E6478;
+}
+
+.canvas-timeline {
+  top: -4px;
 }
 
 
@@ -38,7 +50,6 @@ line.bar {
 
 svg {
 	position: relative;
-	bottom: -4px;
 }
 
 #graph {
@@ -90,10 +101,18 @@ rect.tooltip {
   left: 0;
 }
 
-.axis-x text {
+.axis-x text, text.heading {
   font-family: Myriad, sans-serif;
   font-size: 20px;
   fill: white;
+}
+
+text.heading {
+  font-size: 18px;
+}
+
+.axis-x .tick line {
+  display: none;
 }
 
 .axis-x-support text {
@@ -112,9 +131,18 @@ rect.tooltip {
 .labelgroup-left .label {
   text-anchor: start;
 }
+
 .labelgroup-right .label {
   text-anchor: end;
 }
 
+.canvas-barchart .axis-x text {
+  font-size: 10px;
+}
+
+h2 {
+  position: absolute;
+  text-align: center;
+}
 
 
