@@ -7,6 +7,10 @@ body {
 	position: relative;
 }
 
+#container > div {
+  position: relative;
+}
+
 .canvas-area line, .canvas-timeline line, .bar, .canvas-barchart line {
 	stroke: #317183;
   stroke-width: 1px;
@@ -30,13 +34,21 @@ line.bar {
 }
 
 
-#graph {
+.panned, .static {
 	position: relative;
 	margin: 0;
 	top: 0px;
 	z-index: 10;
 	background-color: #1E6478;
 }
+
+
+.static {
+  position: absolute;
+  background-color: transparent;
+}
+
+
 
 .canvas-timeline {
   top: -4px;
@@ -52,10 +64,6 @@ svg {
 	position: relative;
 }
 
-#graph {
-	z-index: 20;
-	background-color: transparent;
-}
 
 circle.point {
 	z-index: 100;

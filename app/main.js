@@ -20,7 +20,9 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
       		.attr("height", config.height + config.margin.top + config.margin.bottom);
 
       	return applyMargins(config, base);
-    };
+    }, 	inner = function(base) {
+			return base.append("g");
+	};
 
 
 	var paddedTimeScale = function(config, data) {			
@@ -110,6 +112,271 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	]};
 
 
+	var tooltips = function(base) {
+ 		
+ 		var treeFactory = d3.geom.quadtree()
+    		.x(function(d) { return d.x; })
+	    	.y(function(d) { return d.y; }),
+    	radius = 3, root, currentHandler;
+
+    	var tip = d3.tip()
+	  		.attr('class', 'd3-tip')
+	  		.offset([-10, 0])
+	  		.html(function(d) {
+	    		return "<strong>" + d.series + "</strong> <span style='color:red'>" + d.y + "</span>";
+  		});
+
+	  	var over = function(p) {
+	 		var svgElement = p.el[0][0];
+			//p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
+			tip.show(p.datum, svgElement);
+			d3.select(svgElement).style("opacity", 1);
+	 	},
+
+	 	out = function(p) {
+	 		var svgElement = p.el[0][0];
+			tip.hide(p.datum, svgElement);
+			d3.select(svgElement).style("opacity", 0);
+	 	}, 
+
+	 	visitor = function(node, x1, y1, x2, y2) {
+			var p = node.point;
+ 			
+ 			if(p) {
+ 				var dx = coordPair[0] - node.point.x, dy = coordPair[1] - node.point.y, 
+ 					rad = Math.sqrt(dx*dx + dy*dy);
+
+ 				if(rad < radius) { 					
+ 					if(!p.inRadius) { 
+	 					p.inRadius = true;
+	 					over(p); 
+ 					} 					
+ 					return true;
+ 				} else if (p.inRadius) {
+					out(p);
+					p.inRadius = false;
+					return true;
+ 				}
+ 			}
+
+ 			return false;
+ 		},
+
+    	moveHandlerFactory =  function(newRoot) {
+    		return function() {
+	 			var coordPair = d3.mouse(this);
+				root.visit(newRoot);
+			}
+	 	};
+
+	  	base.call(tip);
+
+ 	 	var reset = function(coords) {
+ 	 		if(currentHandler) base.off("mousemove", currentHandler);
+ 	 		currentHandler = moveHandlerFactory(treeFactory(coords));
+			base.on("mousemove", currentHandler);
+ 	 	};
+
+ 	 	//export
+ 	 	return {
+ 	 		reset: reset
+ 	 	};
+	};
+
+	var areaGraph = function(config, data, color, tooltips) {
+		//variables
+		var me = {}, config = config, data = data,
+			shift, start, end, max, amountTickSuffix, innerWidth, innerHeight,
+			stackedData;
+
+		//constants
+		var xAxisPadding = 100, yTicks = 4;
+
+		var stackingMapper = function(series, seriesIndex) { 
+			return { 
+				series: series, 
+				values: data.y.map(function(item, innerIndex) { 
+					return { 
+						x: data.x[innerIndex],
+						y: item[seriesIndex]
+					};
+				}) 
+			};
+		};
+
+		//scales and data elements 
+		var timeScale = d3.time.scale()
+				.nice(d3.time.year),
+			amountScale = d3.scale.linear(),
+			
+			area = d3.svg.area()
+	    		.x(function(d) { return timeScale(d.x); })
+	    		.y0(function(d) { return amountScale(d.y0); })
+	    		.y1(function(d) { return amountScale(d.y0 + d.y); }),
+			
+			stack = d3.layout.stack()
+				.values(function(d) { return d.values; }),
+
+
+
+		//elements
+		var	canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),
+			overlay = config.containers.static.append("svg").attr("class", "overlay-area"),
+			grid = inner(canvas), graph = inner(canvas), legend = inner(overlay), 
+
+			title = overlay.append("text").attr("class", "heading")
+				.attr("text-anchor", "middle")
+				.text("Úspešnosť firmy v tendroch za jednotlivé roky");
+
+		var reset = function(newConfig, newData) {
+			data = newData;
+			config = newConfig;
+			initialize();
+		},
+
+		//private
+		
+		initialize = function() {
+			shift = config.width / data.x.length;
+			start = _.first(data.x);
+			max = _.max(map(data.y, function(item) { return _.reduce(item, sum)})) * 1.6;
+			amountTickSuffix = config.amountTickSuffix;
+
+			timeScale.domain([start, end]).range([0, innerWidth]),
+			amountScale.domain([0, max]).range([innerHeight, 0]);
+
+			sizing();
+
+			color.domain(data.series);
+			stackedData = stack(color.domain().map(stackingMapper));
+			
+			renderArea();
+			renderPointGroups();
+		},
+
+		renderArea = function() {
+			var series = graph.selectAll(".series")
+		      .data(stackedData);
+
+		    series.exit().remove();
+
+		    series.enter()
+		    	.append("g").attr("class", "series")
+				.append("path")
+		      	.attr("class", "area")
+		      	.attr("d", function(d) { return area(d.values); })
+		      	.style("fill", function(d) { return color(d.series); });
+		},
+
+		renderPointGroups = function() {
+	    	var pointGroups = graph.selectAll(".points")
+	    		.data(stackedData);
+
+	    	pointGroups.exit().remove();
+
+	    	pointGroups.enter().append("g").attr("class", "points")
+				.each(renderPointsForGroup);
+		},
+
+		renderPointsForGroup = function(d) {  
+			var group = d3.select(this), 
+				points = group.selectAll("circle.point").data(function(d) {
+	    			return d.values;
+	    		}); 
+
+			points.exit().remove();
+
+    		points.enter().append("circle")
+    			//enrich the current datum on iteration
+    			.datum(function(pointDatum) { pointDatum.series = d.series; return pointDatum; })
+	   			.attr("class", "point")
+	   			.attr("cx", function(d) { return timeScale(d.x); })
+	   			.attr("cy", function(d) { return amountScale(d.y0 + d.y); })
+	   			.attr("r", 3)
+	   			.style("opacity", 0)
+	   			.attr("fill", color(group.data()[0].series));
+	    },
+
+		sizing = function() {
+
+			var margin = config.margin,
+				shifted = _.assign(margin, { left: margin.left + shift/2 });
+
+			resize(canvas, config);
+			resize(overlay, config);
+			remargin(grid, margin);
+			remargin(graph, shifted);
+			remargin(legend, shifted);
+
+			repositionTitle();
+		},
+
+		repositionTooltips = function() {
+		    var coords = graph.selectAll(".point")[0].map(function(point) { 
+	    		var p = d3.select(point);
+		    	return { 
+		    		el: p,
+		    		datum: p.datum(),
+		    		x: parseInt(p.attr("cx")),
+		    		y: parseInt(p.attr("cy"))
+		    	}; 
+			});
+
+			tooltips.reset(coords);
+		},
+
+
+		remargin = function(el, margin) {
+			el.attr("transform", "translate(" + (margin.left) + "," + (margin.top) + ")")
+		},
+
+		resize = function(el, size, margin) {
+			el.attr("width", size.width + margin.left + margin.right)
+  			.attr("height", size.height + margin.top + margin.bottom);
+		},
+
+		repositionTitle = function() {
+			title.attr("x", config.width / 2).attr("y", 40)
+		},
+		
+		return {
+			reset: reset
+		};
+
+	}
+
+	// rather thru amd - exports - export the constructed object, don't use prototype
+	// var AreaGraph = function(config, data) {
+	// }
+
+	// _.assign(AreaGraph.prototype, {
+		
+	// 	reset: function(config, data) {
+	// 		var me = this;
+	// 		_.assign(me, { config: config, data: data });
+	// 		me.initialize();
+	// 	},
+		
+	// 	initialize: function() {
+	// 		var me = this;
+
+	// 		_.assign(me, {
+	// 			shift: me.config.width / (me.data.x.length), 
+	// 			start: _.first(me.data.x), end: _.last(me.data.x),
+	// 			//get maximum per all points cross-series - multiplication is because of a certain padding from above
+	// 			max: _.max(_.map(me.data.y, function(item) { return _.reduce(item, sum) })) * 1.6,
+	// 			amountTickSuffix: me.config.amountTickSuffix,
+	// 			xAxisPadding: 100, 
+	// 			yTicks: 4,		
+	// 			innerWidth: me.config.width - me.shift, innerHeight: me.config.height - (me.xAxisPadding);
+	// 	})		
+
+	// 	}
+
+
+	// });
+
+
 	var createAreaGraph = function(config, data) {
 		
 		var shift = config.width / (data.x.length), 
@@ -135,16 +402,21 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 				//.nice(1)
 				.range([innerHeight, 0]);
 
-		var canvas = d3.select("#graph").append("svg").attr("class", "canvas-area"),
+		var canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),
+			overlay = config.containers.static.append("svg").attr("class", "overlay-area"),
 			grid = applySizing(config, canvas),
-			graph = applySizing(
-				_.assign(config, { 
-					margin: _.assign(_.clone(config.margin), { 
-						left: config.margin.left + shift/2 
-					}) 
-				}), canvas);
 
-		canvas.append("text")
+			//create a rect in the size of grid
+
+			graphSizingConfig = _.assign(config, { 
+				margin: _.assign(_.clone(config.margin), { 
+					left: config.margin.left + shift/2 
+				}) 
+			}),			
+			graph = applySizing(graphSizingConfig, canvas),
+			graphOverlay = applySizing(graphSizingConfig, overlay);
+
+		overlay.attr({ width: canvas.attr("width"), height: canvas.attr("height")}).append("text")
 			.attr("class", "heading")
 			.attr("y", 40)
 			.attr("x", config.width / 2)
@@ -288,7 +560,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	 		var svgElement = p.el[0][0];
 			tip.hide(p.datum, svgElement);
 			d3.select(svgElement).style("opacity", 0);
-	 	}
+	 	};
 
 	 	//axis rendering
 
@@ -324,7 +596,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	   	}).pos(0, innerHeight).render();
     	
     	//these need to be put in a different svg container entirely, since the whole thing will be panned
-    	renderYAxes(graph);  	
+    	renderYAxes(graphOverlay);  	
 
 	};
 
@@ -344,9 +616,12 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	    	
 	var createTimeline = function(config, data) {
 
-		var canvas = d3.select("#graph").append("svg").attr("class", "canvas-timeline"),		
+		var canvas = config.containers.panned.append("svg").attr("class", "canvas-timeline"),
+			overlay = config.containers.static.append("svg").attr("class", "overlay-timeline"),
+
 			grid = applySizing(config, canvas),
 			timeline = applySizing(config, canvas),	
+			timelineOverlay = applySizing(config, overlay),
 
 			start = _.first(data.x), end = _.last(data.x),
 			shift = config.width / (data.x.length),
@@ -363,7 +638,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 
 			color.domain(data.series);
 
-			canvas.append("text")
+			overlay.append("text")
 				.attr("class", "heading")
 				.attr("y", 40)
 				.attr("x", config.width / 2)
@@ -386,7 +661,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 				yScale = d3.scale.ordinal()
 					.domain(denormalizedSeriesByPosition.map(rangeKey))
 					.rangePoints([config.padding.top + 30, config.height - (config.padding.top + 60)]),
-				verticalPosition = function(d) { return yScale(rangeKey(d)); };
+				verticalPosition = function(d) { return yScale(rangeKey(d)) + 5; };
 
 
 			timeline.selectAll(".bar-bg")
@@ -420,13 +695,13 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		    
 
 
-		    timeline.append("g").attr("class", "labelgroup-left")
+		    timelineOverlay.append("g").attr("class", "labelgroup-left")
 		    	.attr("transform", "translate(" + shift/2 + ",-" + config.labelPadding + ")")
 		    	.selectAll(".label").data(denormalizedSeriesByRange).enter().append("text")
 		    	.attr({"x": 0, "y": verticalPosition, "class": "label"})
 		    	.text(function(d) { return d.position });
 
-		    timeline.append("g").attr("class", "labelgroup-right")
+		    timelineOverlay.append("g").attr("class", "labelgroup-right")
 		    	.attr("transform", "translate(" + (config.width - shift/2) + ",-" + config.labelPadding + ")")
 		    	.selectAll(".label").data(denormalizedSeriesByRange).enter().append("text")
 		    	.attr({"x": 0, "y": verticalPosition, "class": "label"})
@@ -434,7 +709,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		   	
 		   	new TimeAxis({
 		   		parent: timeline, scale: timeScale, data: data, renderSums: false
-		   	}).pos(shift/2, config.height - 100).render();
+		   	}).pos(shift/2, config.height - 120).render();
 	};
 
 	var createHorizontalBarChart = function(config, data) {
@@ -458,7 +733,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 			.domain([0, total])
 			.range([0, config.width]);
 
-		var barChart = applySizing(config, d3.select("#graph").append("svg").attr("class", "canvas-barchart"));
+		var barChart = applySizing(config, config.containers.panned.append("svg").attr("class", "canvas-barchart"));
 
 		barChart.selectAll(".segment").data(barData).enter()
 			.append("rect")
@@ -511,11 +786,16 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	// 	});
 	// });
 	
+
+	var gen = function(klass, selector) { return d3.select(selector).append("div").attr("class", klass); },
+		containers = function(selector) { return { panned: gen("panned", selector), static: gen("static", selector)}; };
+
 	var config = {
 		margin: { left: 20, top: 0, bottom: 0, right: 20},
 		padding: {},
 		width: 960, height: 400,
-		amountTickSuffix: " mil €"
+		amountTickSuffix: " mil €",
+		containers: containers("#area")
 	};
 
 	
@@ -525,7 +805,8 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		height: 360,
 		padding: { top: 60, bottom: 0},
 		tipCompensation: 4,
-		labelPadding: 10
+		labelPadding: 15,
+		containers: containers("#timeline")
 	};
 
 	
@@ -534,7 +815,8 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		width: config.width,
 		height: 30,
 		padding: { left: 0 },
-		amountTickSuffix: config.amountTickSuffix
+		amountTickSuffix: config.amountTickSuffix,
+		containers: containers("#bar")
 	};
 
 	
@@ -543,5 +825,6 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	createAreaGraph(config, points);
 
 	createTimeline(timelineConfig, points);
+
 
 });
