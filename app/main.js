@@ -112,6 +112,77 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	]};
 
 
+	var grid = function(config) {
+		var export, width, height, base, horzScale, vertScale, axes = {}, tickAmount;
+
+		var reset = function(newConfig) {
+			width = newConfig.width;
+			height = newConfig.height;
+			base = newConfig.base;
+			tickAmount = newConfig.tickAmount;
+
+			axes = newConfig.axes || [horz, vert];
+
+			var here = this;
+			
+			_.each(_.keys(axes), function(type) {
+				here[type]();
+			});
+		},
+
+		horz: function(scale) {
+			horzScale = scale;
+			axes["horizontal"] = true;
+			return export;
+		},
+
+		vert: function(scale) {
+			vertScale = scale;
+			axes["vertical"] = true;
+			return export;
+		}
+		
+		//private
+
+		horizontal = function() {
+			var ticks = horzScale.ticks(tickAmount);
+
+			ticks.push(horzScale.domain()[1]); 
+
+			var lines = base.selectAll("line.horz")
+				.data(ticks);
+
+			lines.exit().remove();
+			lines.enter().append("line")
+		        .attr({ "x1" : 0, "x2" : width,
+		            "y1" : scaleFor(horzScale),
+		            "y2" : scaleFor(horzScale),
+		            "class": "horz"
+		        });	  
+		},
+
+		vertical = function() {
+			var lines = base.selectAll("line.vert")
+				.data(vertScale.ticks());
+		    
+		    lines.exit().remove();c
+		    lines.enter().append("line")
+		        .attr({ "y1" : 0, "y2" : height,
+		            "x1" : scaleFor(vertScale),
+		            "x2" : scaleFor(vertScale),
+		            "class": "vert"
+		        });	
+		}
+
+		export = {
+			horz: horz,
+			vert: vert,
+			reset: reset
+		};
+
+		return export;
+	};
+
 	var tooltips = function(base) {
  		
  		var treeFactory = d3.geom.quadtree()
@@ -165,7 +236,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
     	moveHandlerFactory =  function(newRoot) {
     		return function() {
 	 			var coordPair = d3.mouse(this);
-				root.visit(newRoot);
+				newRoot.visit(visitor);
 			}
 	 	};
 
@@ -183,7 +254,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
  	 	};
 	};
 
-	var areaGraph = function(config, data, color, tooltips) {
+	var areaGraph = function(config, data, color, tooltips, gridRenderer) {
 		//variables
 		var me = {}, config = config, data = data,
 			shift, start, end, max, amountTickSuffix, innerWidth, innerHeight,
@@ -208,14 +279,19 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		var timeScale = d3.time.scale()
 				.nice(d3.time.year),
 			amountScale = d3.scale.linear(),
-			
+			amountAxis = d3.svg.axis()
+	 			.orient("right")
+	 			.ticks(yTicks)
+	 			.tickFormat(function(d) {
+	 				return d + amountTickSuffix;
+	 			}),
 			area = d3.svg.area()
 	    		.x(function(d) { return timeScale(d.x); })
 	    		.y0(function(d) { return amountScale(d.y0); })
 	    		.y1(function(d) { return amountScale(d.y0 + d.y); }),
 			
 			stack = d3.layout.stack()
-				.values(function(d) { return d.values; }),
+				.values(function(d) { return d.values; });
 
 
 
@@ -250,8 +326,22 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 			color.domain(data.series);
 			stackedData = stack(color.domain().map(stackingMapper));
 			
+			renderGrid();
 			renderArea();
 			renderPointGroups();
+			renderYAxes();
+		},
+
+		renderGrid = function() {
+			gridRenderer
+				.horz(amountScale)
+				.vert(paddedTimeScale(config, data))
+				.reset({
+					width: config.width,
+					height: config.height + xAxisPadding,
+					base: grid,
+					tickAmount: yTicks
+			});
 		},
 
 		renderArea = function() {
@@ -297,6 +387,29 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	   			.attr("fill", color(group.data()[0].series));
 	    },
 
+	    renderYAxes = function() {
+			amountAxis.scale(amountScale);
+			//how to re-render?
+			
+	 		legend.append("g")
+		    	.attr("class", "axis-y axis-left")
+		    	.attr("transform", "translate(" + innerWidth + ",0)")
+		    	.call(amountAxis)
+		  		.selectAll("text")
+		    	.attr("x", - textPadding.left)
+		    	.attr("y", textPadding.top)
+		    	.style("text-anchor", "end");
+	 		
+	 		legend.append("g")
+		    	.attr("class", "axis-y axis-right")
+		    	.attr("transform", "translate(0,0)")
+		    	.call(amountAxis)
+		  		.selectAll("text")
+		    	.attr("x", -shift/2 + textPadding.left)
+		    	.attr("y", textPadding.top)
+		    	.style("text-anchor", "start");		
+	    },
+
 		sizing = function() {
 
 			var margin = config.margin,
@@ -309,6 +422,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 			remargin(legend, shifted);
 
 			repositionTitle();
+			repositionTooltips();
 		},
 
 		repositionTooltips = function() {
