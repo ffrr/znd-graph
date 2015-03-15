@@ -1,4 +1,4 @@
-define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
+define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 	var color = d3.scale.category20(), 
 		yearStart = function(year) { return new Date(year, 0, 1); },
@@ -56,6 +56,62 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 			        });	        			
 		};
 
+	var timeAxis = function(parent, renderSums) {
+		var data, scale, pos, suffix;
+
+		var mainAxis = d3.svg.axis().orient("bottom"),
+			subAxis = d3.svg.axis().orient("bottom")
+	 			.tickFormat(function(d, index) {
+		 			return _.reduce(data.y[index],sum) + suffix;
+	 		}), 
+
+ 			textPadding = { top: 40 };
+
+ 		var container = parent.append("g").attr("class", "axis-x"),
+			mainAxisEl = container.append("g").attr("class", "axis-x-main"), 
+			subAxisEl;
+		
+		if(renderSums) {
+			subAxisEl = container.append("g").attr("class", "axis-x-support");
+		}
+
+
+		var reset = function(newData, newScale, newPos, newSuffix) {
+				data = newData; scale = newScale; pos = newPos; suffix = newSuffix;
+				initialize();
+			},
+
+			initialize = function() {
+				mainAxis.scale(scale); subAxis.scale(scale);
+				render();
+			},
+
+			renderPartialAxis = function(axis, axisEl, y) {
+				
+				axisEl.call(axis).style("opacity", 0)
+					.selectAll("text")
+					.attr("y",  y)
+					.style("text-anchor", "middle");
+
+				axisEl.transition().style("opacity", 1);
+			},
+
+			render = function() {
+
+				container.attr("transform", "translate(" + pos.x + ", " + pos.y + ")");
+				
+				renderPartialAxis(mainAxis, mainAxisEl, textPadding.top);
+
+				if(subAxisEl) {
+					renderPartialAxis(subAxis, subAxisEl, textPadding.top + 20);					
+				}
+			};
+			
+
+		return {
+			reset: reset
+		};
+	};
 
 
 	var TimeAxis = function(config) {
@@ -141,36 +197,65 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		
 		//private
 
-		horizontal = function() {
-			var ticks = horzScale.ticks(tickAmount);
-			ticks.push(horzScale.domain()[1]); 
 
-			var lines = base.selectAll("line.horz").data(ticks);
-
+		lines = _.curry(function(attr, klass, scale, ticks) {
+			var lines = base.selectAll("." + klass).data(ticks);
 			lines.exit().remove();
-			
-			lines.enter().append("line").attr("class", "horz");
-			
-		    lines.transition().attr({ "x1" : 0, "x2" : width,
-	            "y1" : scaleFor(horzScale),
-	            "y2" : scaleFor(horzScale)
-	        });	  
+			lines.enter().append("line").attr("class", klass);
 
-	        
+		    lines.transition().attr(attr);	 
+		}),
+
+		clampedTicks = function(scale) {
+			var ticks = scale.ticks(tickAmount);
+			ticks.push(scale.domain()[1]);
+			return ticks;
 		},
 
-		vertical = function() {
-			var lines = base.selectAll("line.vert").data(vertScale.ticks());
+		horizontal = function() { 
+			return lines({ "x1" : 0, "x2" : width,
+            	"y1" : scaleFor(horzScale),
+            	"y2" : scaleFor(horzScale)
+        	}, "horz", horzScale)(clampedTicks(horzScale));
+        },
+
+        vertical = function() {
+        	return lines({ "y1" : 0, "y2" : height,
+            	"x1" : scaleFor(vertScale),
+            	"x2" : scaleFor(vertScale),
+        	}, "vert", vertScale)(vertScale.ticks());
+        },
+
+		// horizontal = function() {
+		// 	var ticks = horzScale.ticks(tickAmount);
+		// 	ticks.push(horzScale.domain()[1]); 
+
+		// 	var lines = base.selectAll("line.horz").data(ticks);
+
+		// 	lines.exit().remove();
+			
+		// 	lines.enter().append("line").attr("class", "horz");
+			
+		//     lines.transition().attr({ "x1" : 0, "x2" : width,
+	 //            "y1" : scaleFor(horzScale),
+	 //            "y2" : scaleFor(horzScale)
+	 //        });	  
+
+	        
+		// },
+
+		// vertical = function() {
+		// 	var lines = base.selectAll("line.vert").data(vertScale.ticks());
 		    
-		    lines.exit().remove();
+		//     lines.exit().remove();
 
-		    lines.enter().append("line").attr("class", "vert");
+		//     lines.enter().append("line").attr("class", "vert");
 
-		    lines.transition().attr({ "y1" : 0, "y2" : height,
-	            "x1" : scaleFor(vertScale),
-	            "x2" : scaleFor(vertScale),
-	        });	
-		}
+		//     lines.transition().attr({ "y1" : 0, "y2" : height,
+	 //            "x1" : scaleFor(vertScale),
+	 //            "x2" : scaleFor(vertScale),
+	 //        });	
+		// }
 
 		_export = {
 			horz: horz,
@@ -181,76 +266,120 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		return _export;
 	};
 
-	var tooltips = function(base) {
- 		
- 		var treeFactory = d3.geom.quadtree()
-    		.x(function(d) { return d.x; })
-	    	.y(function(d) { return d.y; }),
-    	radius = 3, root, currentHandler;
 
-    	var tip = d3.tip()
-	  		.attr('class', 'd3-tip')
-	  		.offset([-10, 0])
-	  		.html(function(d) {
-	    		return "<strong>" + d.series + "</strong> <span style='color:red'>" + d.y + "</span>";
-  		});
+	var tooltips = function(base, overlay) {
+		var tip = d3.tip()
+			.attr("class", "d3-tip")
+			.offset([-10, 0])
+			.html(function(d) {
+	    		return "<strong>test</strong>";
+  			});
 
-	  	var over = function(p) {
+	  	var toggle = _.curry(function(state, p) {
 	 		var svgElement = p.el[0][0];
 			//p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
-			tip.show(p.datum, svgElement);
+			tip[state ? "show":"hide"](p.datum, svgElement);
 			d3.select(svgElement).style("opacity", 1);
-	 	},
+	 	});
 
-	 	out = function(p) {
-	 		var svgElement = p.el[0][0];
-			tip.hide(p.datum, svgElement);
-			d3.select(svgElement).style("opacity", 0);
-	 	}, 
+	 	base.call(tip);
 
-	 	visitor = function(node, x1, y1, x2, y2) {
-			var p = node.point;
- 			
- 			if(p) {
- 				var dx = coordPair[0] - node.point.x, dy = coordPair[1] - node.point.y, 
- 					rad = Math.sqrt(dx*dx + dy*dy);
+	 	var reset = function(selection) {
+	 		//listener cleanup implicit, browser dependent (ie?)
+	 		selection
+	 			//.datum(function(d) { console.log(d); })
+	 			//.on("mouseover", function() { console.log("tellmemore"); } /* toggle(true)*/)
+	 			.on("click", function() { console.log("tellmemore"); } /* toggle(true)*/)
+	 			.on("mouseout", tip.hide /* toggle(false)*/);
+	 	}
 
- 				if(rad < radius) { 					
- 					if(!p.inRadius) { 
-	 					p.inRadius = true;
-	 					over(p); 
- 					} 					
- 					return true;
- 				} else if (p.inRadius) {
-					out(p);
-					p.inRadius = false;
-					return true;
- 				}
- 			}
-
- 			return false;
- 		},
-
-    	moveHandlerFactory =  function(newRoot) {
-    		return function() {
-	 			var coordPair = d3.mouse(this);
-				newRoot.visit(visitor);
-			}
+	 	return {
+	 		reset: reset
 	 	};
 
-	  	base.call(tip);
-
- 	 	var reset = function(coords) {
- 	 		//if(currentHandler) base.off("mousemove", currentHandler);
- 	 		currentHandler = moveHandlerFactory(treeFactory(coords));
-			base.on("mousemove", currentHandler);
- 	 	};
-
- 	 	//export
- 	 	return {
- 	 		reset: reset
- 	 	};
 	};
+
+	// var tooltips = function(base) {
+ 		
+ // 		var treeFactory = d3.geom.quadtree()
+ //    		.x(function(d) { return d.x; })
+	//     	.y(function(d) { return d.y; }),
+ //    	radius = 3, root, currentHandler;
+
+ //    	var tip = d3.tip()
+	//   		.attr('class', 'd3-tip')
+	//   		.offset([-10, 0])
+	//   		.html(function(d) {
+	//     		return "<strong>" + d.series + "</strong> <span style='color:red'>" + d.y + "</span>";
+ //  		});
+
+	//   	var toggle = _.curry(function(state, p) {
+	//  		var svgElement = p.el[0][0];
+	// 		//p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
+	// 		tip[state ? "show":"hide"](p.datum, svgElement);
+	// 		d3.select(svgElement).style("opacity", 1);
+	//  	}), 
+
+	//  		over = toggle(true), out = toggle(false),
+
+	//   // 	over = function(p) {
+	//  	// 	var svgElement = p.el[0][0];
+	// 		// //p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
+	// 		// tip.show(p.datum, svgElement);
+	// 		// d3.select(svgElement).style("opacity", 1);
+	//  	// },
+
+	//  	// out = function(p) {
+	//  	// 	var svgElement = p.el[0][0];
+	// 		// tip.hide(p.datum, svgElement);
+	// 		// d3.select(svgElement).style("opacity", 0);
+	//  	// }, 
+
+
+
+	//  	visitor = function(node, x1, y1, x2, y2) {
+	// 		var p = node.point;
+ 			
+ // 			if(p) {
+ // 				var dx = coordPair[0] - node.point.x, dy = coordPair[1] - node.point.y, 
+ // 					rad = Math.sqrt(dx*dx + dy*dy);
+
+ // 				if(rad < radius) { 					
+ // 					if(!p.inRadius) { 
+	//  					p.inRadius = true;
+	//  					over(p); 
+ // 					} 					
+ // 					return true;
+ // 				} else if (p.inRadius) {
+	// 				out(p);
+	// 				p.inRadius = false;
+	// 				return true;
+ // 				}
+ // 			}
+
+ // 			return false;
+ // 		},
+
+ //    	moveHandlerFactory =  function(newRoot) {
+ //    		return function() {
+	//  			var coordPair = d3.mouse(this);
+	// 			newRoot.visit(visitor);
+	// 		}
+	//  	};
+
+	//   	base.call(tip);
+
+ // 	 	var reset = function(coords) {
+ // 	 		//if(currentHandler) base.off("mousemove", currentHandler);
+ // 	 		currentHandler = moveHandlerFactory(treeFactory(coords));
+	// 		base.on("mousemove", currentHandler);
+ // 	 	};
+
+ // 	 	//export
+ // 	 	return {
+ // 	 		reset: reset
+ // 	 	};
+	// };
 
 	var areaGraph = function(config_, data_, color, tooltipRenderer, gridRenderer) {
 		//variables
@@ -259,7 +388,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 			stackedData;
 
 		//constants
-		var xAxisPadding = 100, yTicks = 4, axisTextPadding = { left: 10, top: 15};
+		var xAxisPadding = 100, yTicks = 4, axisTextPadding = { left: 10, top: 15 };
 
 		var stackingMapperFactory = function(data) {
 			return function(series, seriesIndex) { 
@@ -274,6 +403,24 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 				};
 			};
 		};
+
+		var stackedBarData = function(data) {
+			return function(item, i) {
+				var y0 = 0, obj = {};
+				obj.x = data.x[i]; 
+				
+				obj.y = _.map(color.domain(), function(series, j) {
+					return {
+						series: series,
+						y0: y0, 
+						y1: y0 += item[j]
+					}
+				});
+
+				return obj;
+			}
+		};
+
 
 		//scales and data elements 
 		var timeScale = d3.time.scale()
@@ -300,8 +447,13 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 
 		//elements
 		var	canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),
-			overlay = config.containers.static.append("svg").attr("class", "overlay-area"),
-			grid = inner(canvas), graph = inner(canvas), legend = inner(overlay), 
+			content = canvas.append("g").attr("clip-path", "url(#clip-area)"),
+			clip = canvas.append("clipPath").attr("id", "clip-area").append("rect"),
+
+			//overlay = config.containers.static.append("svg").attr("class", "overlay-area"),
+			grid = inner(content), 
+			graph = inner(content), 
+			legend = inner(content), 
 
 			title = legend.append("text").attr("class", "heading")
 				.attr("text-anchor", "middle")
@@ -309,6 +461,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 
 			leftAxis = legend.append("g").attr("class", "axis-y axis-left"),
 			rightAxis = legend.append("g").attr("class", "axis-y axis-right"),
+			bottomAxis = timeAxis(graph, true),
 			tooltips = tooltipRenderer(graph);
 			
 
@@ -323,10 +476,13 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		
 		initialize = function() {
 			shift = config.width / data.x.length;
-			start = _.first(data.x); 
-			end = _.last(data.x);
+			barWidth = shift / 4;
 			innerWidth = config.width - shift; 
 			innerHeight = config.height - (xAxisPadding);
+
+			start = _.first(data.x); 
+			end = _.last(data.x);
+
 			max = _.max(_.map(data.y, function(item) { return _.reduce(item, sum)})) * 1.6;
 			amountTickSuffix = config.amountTickSuffix;
 
@@ -336,12 +492,18 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 			sizing();
 
 			color.domain(data.series);
-			stackedData = stack(color.domain().map(stackingMapperFactory(data)));
+			//stackedData = stack(color.domain().map(stackingMapperFactory(data)));
 			
+			stackedData = _.map(data.y, stackedBarData(data));
+
 			renderGrid();
-			renderArea();
-			renderPointGroups();
+			//renderArea();
+			renderBars();
+			repositionTooltips();
+			
+			//renderPointGroups();
 			renderYAxes();
+			renderXAxis();
 		},
 
 		renderGrid = function() {
@@ -368,6 +530,30 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		    series.transition().style("opacity", 1).attr("d", function(d) { return area(d.values); })
 		    
 		    series.exit().transition().style("opacity", 0).remove();
+		},
+
+		renderBars = function() {
+			var bars = graph.selectAll(".segment").data(stackedData);      		
+  			bars.enter().append("g").attr("class", "segment").attr("transform", function(d) { return "translate(" + timeScale(d.x) + ",0)"; });
+
+  			var bands = bars.selectAll("rect").data(function(d) { return d.y; });
+      		
+      		bands.enter().append("rect")
+				.style("opacity", 0)	
+      			.style("fill", function(d) { return color(d.series); });
+      		
+      		bands.transition()
+      			.style("opacity", 1)
+      			.attr("width", barWidth)
+      			.attr("x", -barWidth/2)      			
+      			.attr("height", function(d) { return amountScale(d.y0) - amountScale(d.y1); })
+      			.attr("y", function(d) { return amountScale(d.y1); });
+			
+			bars.transition().attr("transform", function(d) { return "translate(" + timeScale(d.x) + ",0)"; }),
+			
+			bands.exit().transition().style("opacity", 0).remove();
+			bars.exit().remove();      		
+
 		},
 
 		renderPointGroups = function() {
@@ -401,13 +587,13 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 
 	    renderYAxes = function() {
 			amountAxis.scale(amountScale);
-			//how to re-render?
 			
-	 		rightAxis.call(amountAxis)	 		
-		    	.attr("transform", "translate(" + innerWidth + ",0)")		    
-		  		.style("opacity", 0)
+	 		rightAxis
+	 			.call(amountAxis)	 		
+		    	.style("opacity", 0)
+		    	.attr("transform", "translate(" + (innerWidth + shift/2 - config.margin.right) + ",0)")		    
 		  		.selectAll("text")
-		    	.attr("x", - axisTextPadding.left)
+		    	//.attr("x", - axisTextPadding.left)
 		    	.attr("y", axisTextPadding.top)
 		    	.style("text-anchor", "end");
 
@@ -425,33 +611,27 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
     		leftAxis.transition().style("opacity", 1);
 	    },
 
+	    renderXAxis = function() {
+	    	bottomAxis.reset(data, timeScale, {x: 0, y: innerHeight}, amountTickSuffix);
+	    },
+
 		sizing = function() {
 
 			var margin = config.margin,
 				shifted = _.assign(_.clone(margin), { left: margin.left + shift/2 });
 
 			resize(canvas, config, margin);
-			resize(overlay, config, margin);
+			resize(clip, config, margin);
+			//resize(overlay, config, margin);
 			remargin(grid, margin);
 			remargin(graph, shifted);
 			remargin(legend, shifted);
 
 			repositionTitle();
-			repositionTooltips();
 		},
 
 		repositionTooltips = function() {
-		    var coords = graph.selectAll(".point")[0].map(function(point) { 
-	    		var p = d3.select(point);
-		    	return { 
-		    		el: p,
-		    		datum: p.datum(),
-		    		x: parseInt(p.attr("cx")),
-		    		y: parseInt(p.attr("cy"))
-		    	}; 
-			});
-
-			tooltips.reset(coords);
+			tooltips.reset(graph.selectAll(".segment"));
 		},
 
 
@@ -892,7 +1072,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	var points = { 
 		series: ["Plastika Nitra", "Prvá tunelárska", "Váhostav"],
 		x: [2005, 2006, 2007, 2008, 2009, 2010, 2011] ,
-		y: [[50, 10, 20], [60, 10, 40], [20, 70, 15], [50, 20, 28], [20, 15, 30], [150, 13, 50 ], [100, 60, 40]],
+		y: [[50, 10, 20], [0, 0, 0], [0, 0, 0], [50, 20, 28], [20, 15, 30], [150, 13, 50 ], [100, 60, 40]],
 		timeline: [[
 			{ position: "Štatutár", ranges: [[2005, 2008]] },
 			{ position: "Zástupca riaditeľa", ranges: [[2008, 2009]] }
@@ -909,6 +1089,25 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	});
 
 	var points2 = { 
+		series: ["Plastika Nitra", "Prvá tunelárska", "Váhostav"],
+		x: [2006, 2007, 2008, 2009, 2010, 2011, 2012] ,
+		y: [[60, 10, 40], [60, 10, 40], [20, 70, 15], [20, 15, 30], [150, 13, 50 ], [100, 60, 40], [30, 20, 10]],
+		timeline: [[
+			{ position: "Štatutár", ranges: [[2005, 2008]] },
+			{ position: "Zástupca riaditeľa", ranges: [[2008, 2009]] }
+		],[
+			{ position: "Štatutár", ranges: [[2005, 2007], [2009, 2010]] },
+			{ position: "Zástupca riaditeľa", ranges: [[2005, 2008]] }
+		],[
+			{ position: "Kotolník", ranges: [[2005, 2011]] },
+		]]
+	};
+
+	points2.x = points2.x.map(function(year) {
+		return yearStart(year);
+	});
+
+	var points3 = { 
 		series: ["Plastika Nitra", "Prvá tunelárska"],
 		x: [2005, 2006, 2007, 2008, 2009, 2010, 2011] ,
 		y: [[50, 10], [60, 10], [20, 70], [50, 11], [20, 15], [150, 13], [10, 60]],
@@ -923,7 +1122,7 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 		]]
 	};
 
-	points2.x = points2.x.map(function(year) {
+	points3.x = points3.x.map(function(year) {
 		return yearStart(year);
 	});
 
@@ -976,7 +1175,8 @@ define(["lodash", "c3", "d3", "d3-tip"], function(_, c3, d3) {
 	var gr = areaGraph(areaConfig, points, color, tooltips, grid);
 	gr.reset();
 
-	_.delay(function() { gr.reset(areaConfig2, points2); }, 2000);
+	//_.delay(function() { gr.reset(areaConfig2, points3); }, 2000);
+	//_.delay(function() { gr.reset(areaConfig, points); }, 4000);
 	
 	// createHorizontalBarChart(barChartConfig, points);
 	
