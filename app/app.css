@@ -153,4 +153,46 @@ h2 {
   text-align: center;
 }
 
+#navigable {
+  position: relative;
+}
+
+#navigable .pan {
+  display: block;
+  position: absolute;
+  height: 100%;
+  width: 30px;
+  color: white;
+  font-size: 2em;
+  background-color: #4992A1;
+  opacity: 0;
+  top: 0;
+  z-index: 10;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+#navigable .pan:hover {
+  opacity: 0.5;
+}
+
+.pan span {
+  display: block;
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  margin-top: -1em;
+  text-align: center;
+}
+
+.pan.left {
+  left: 0;
+}
+
+.pan.right {
+  right: 0;
+}
+
+
+
 

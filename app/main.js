@@ -25,11 +25,11 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	};
 
 
-	var paddedTimeScale = function(config, data) {			
-			return d3.time.scale()
+	var paddedTimeScale = function(config, data) {
+			var ret = d3.time.scale()
 					.domain([_.first(data.x), yearStart( _.last(data.x).getFullYear() + 1)])
-					.nice(d3.time.year)
 					.range([0, config.width]);
+			return ret;
 		},
 
 		createVerticalLines = function(config, container, scale) {
@@ -59,8 +59,8 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	var timeAxis = function(parent, renderSums) {
 		var data, scale, pos, suffix;
 
-		var mainAxis = d3.svg.axis().orient("bottom"),
-			subAxis = d3.svg.axis().orient("bottom")
+		var mainAxis = d3.svg.axis().orient("bottom").ticks(d3.time.year, 1),
+			subAxis = d3.svg.axis().orient("bottom").ticks(d3.time.year, 1)
 	 			.tickFormat(function(d, index) {
 		 			return _.reduce(data.y[index],sum) + suffix;
 	 		}), 
@@ -192,6 +192,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		vert = function(scale) {
 			vertScale = scale;
 			axes.vertical = true;
+			console.log(vertScale.ticks());
 			return _export;
 		},
 		
@@ -223,7 +224,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
         	return lines({ "y1" : 0, "y2" : height,
             	"x1" : scaleFor(vertScale),
             	"x2" : scaleFor(vertScale),
-        	}, "vert", vertScale)(vertScale.ticks());
+        	}, "vert", vertScale)(vertScale.ticks(d3.time.year, 1));
         },
 
 		// horizontal = function() {
@@ -381,6 +382,84 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
  // 	 	};
 	// };
 
+	var navigationWidget = function(config, nav) {
+		var cont = config.container,
+			left = config.left,
+			right = config.right,
+
+			toggle = function(element, t) {
+				element.style("visibility", t ? "visible":"hidden");
+			},
+			evaluateVisibility = function() {
+				toggle(left, !nav.depleted());
+				toggle(right, !nav.maxed());
+			};
+
+		left.on("click", function() { nav.back(); });
+		right.on("click", function() { nav.forward(); });
+
+		console.log(nav);
+	};
+
+
+	var nav = function(data, width, step, graph) {
+
+		var cursor = 0, len = data.x.length, width = (width != null || width != undefined) ? width:3, 
+			
+			back = function() {
+				if(!depleted())  {
+					cursor -= 1;
+					resetGraph();
+				}
+			},
+
+			forward = function() {
+				if(!maxed()) {
+					cursor  += 1;
+					resetGraph();
+				}
+			},
+
+			// 0, 2 -> 2, 4 -> step: 2, width: 2 (cursor * step, cursor * step + width)
+			// 0, 2 -> 1, 3 -> step: 1, width: 2
+
+			resetGraph = function() {
+				var range = [cursor * width, (cursor + 1) * width];
+				graph.reset(window_(data, compensate([cursor * step, (cursor * step) + width]) ));
+			},
+
+			compensate = function(range) {
+				if(width > (len - range[0])) {
+					return [len - width, len];
+				};
+				return range;
+			},
+
+
+			depleted = function() {
+				return cursor === 0;
+			},
+
+			maxed = function() {
+				var outerRange = cursor * step + width;
+				return outerRange >= len; //(cursor + 1) === (Math.floor(len / (cursor * step)) + Math.ceil((len % step) / step));
+			};
+
+		return {
+			back: back,
+			forward: forward
+		};
+	};
+
+
+	var window_ = function(data, range) {
+		return {
+			series: data.series,
+			x: Array.prototype.slice.apply(data.x, range),
+			y: Array.prototype.slice.apply(data.y, range),
+		};
+	};
+
 	var areaGraph = function(config_, data_, color, tooltipRenderer, gridRenderer) {
 		//variables
 		var me = {}, config = config_, data = data_,
@@ -423,8 +502,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 
 		//scales and data elements 
-		var timeScale = d3.time.scale()
-				.nice(d3.time.year),
+		var timeScale = d3.time.scale(),
 			amountScale = d3.scale.linear(),
 			amountAxis = d3.svg.axis()
 	 			.orient("right")
@@ -465,10 +543,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			tooltips = tooltipRenderer(graph);
 			
 
-
-		var reset = function(/* newConfig, newData */) {
-			config = arguments[0] || config;
-			data = arguments[1] || data;
+		console.log(data);
+		var reset = function(/* newData, newConfig */) {
+			data = arguments[0] || data;
+			config = arguments[1] || config;
 			initialize();
 		},
 
@@ -483,7 +561,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			start = _.first(data.x); 
 			end = _.last(data.x);
 
-			max = _.max(_.map(data.y, function(item) { return _.reduce(item, sum)})) * 1.6;
+			max = config.max, //_.max(_.map(data.y, function(item) { return _.reduce(item, sum)})) * 1.6;
 			amountTickSuffix = config.amountTickSuffix;
 
 			timeScale.domain([start, end]).range([0, innerWidth]),
@@ -590,25 +668,25 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			
 	 		rightAxis
 	 			.call(amountAxis)	 		
-		    	.style("opacity", 0)
+		    	//.style("opacity", 0)
 		    	.attr("transform", "translate(" + (innerWidth + shift/2 - config.margin.right) + ",0)")		    
 		  		.selectAll("text")
 		    	//.attr("x", - axisTextPadding.left)
 		    	.attr("y", axisTextPadding.top)
 		    	.style("text-anchor", "end");
 
-		    rightAxis.transition().style("opacity", 1);
+		    //rightAxis.transition().style("opacity", 1);
 	 		
 	 		leftAxis		    	
 		    	.call(amountAxis)
 		    	.attr("transform", "translate(0,0)")
-		    	.style("opacity", 0)
+		    	//.style("opacity", 0)
 		  		.selectAll("text")
 		    	.attr("x", -shift/2 + axisTextPadding.left)
 		    	.attr("y", axisTextPadding.top)
 		    	.style("text-anchor", "start");	
 
-    		leftAxis.transition().style("opacity", 1);
+    		//leftAxis.transition().style("opacity", 1);
 	    },
 
 	    renderXAxis = function() {
@@ -703,7 +781,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 		var timeScale = d3.time.scale()
 				.domain([start, end])
-				.nice(d3.time.year)
+				.nice(d3.time.year, data.x.length)
 				.range([0, innerWidth]),
 
 			amountScale = d3.scale.linear()
@@ -1103,6 +1181,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		]]
 	};
 
+
 	points2.x = points2.x.map(function(year) {
 		return yearStart(year);
 	});
@@ -1142,7 +1221,8 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		padding: {},
 		width: 960, height: 400,
 		amountTickSuffix: " mil €",
-		containers: containers("#area")
+		containers: containers("#area"),
+		max: _.max(_.map(points.y, function(item) { return _.reduce(item, sum)})) * 1.6
 	},  areaConfig2 = {
 		margin: { left: 20, top: 20, bottom: 0, right: 20},
 		padding: {},
@@ -1172,8 +1252,20 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		containers: containers("#bar")
 	};
 
-	var gr = areaGraph(areaConfig, points, color, tooltips, grid);
+
+	var navConfig = {
+		container: d3.select("#nav"),
+		left: d3.select(".pan.left"),
+		right: d3.select(".pan.right")
+	};
+
+
+	var gr = areaGraph(areaConfig, window_(points, [0,4]) , color, tooltips, grid);
 	gr.reset();
+	
+	navigationWidget(navConfig, nav(points, 4, 1, gr));
+
+	//console.log(window_(points, [0,1]));
 
 	//_.delay(function() { gr.reset(areaConfig2, points3); }, 2000);
 	//_.delay(function() { gr.reset(areaConfig, points); }, 4000);
