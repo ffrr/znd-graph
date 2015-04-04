@@ -24,36 +24,23 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			return base.append("g");
 	};
 
+	var randomId = function() { return "" + Math.round(Math.random() * 1e6) + "-" + (new Date().getTime() + "").slice(6); };
+
+
+	var parseTransform = function(a) {
+    	var b={};
+    	for (var i in a = a.match(/(\w+\((\-?\d+\.?\d*e?\-?\d*,?\s?)+\))+/g)) { 
+    		var c = a[i].match(/[\w\.\-]+/g);
+        	b[c.shift()] = c;
+    	}
+    	return b;
+	}
 
 	var paddedTimeScale = function(config, data) {
 			var ret = d3.time.scale()
 					.domain([_.first(data.x), yearStart( _.last(data.x).getFullYear() + 1)])
 					.range([0, config.width]);
 			return ret;
-		},
-
-		createVerticalLines = function(config, container, scale) {
-			container.selectAll("line.vert").data(scale.ticks(arguments[3])).enter()
-			    .append("line")
-			        .attr({ "y1" : 0, "y2" : config.height,
-			            "x1" : scaleFor(scale),
-			            "x2" : scaleFor(scale),
-			            "class": "vert"
-			        });	
-		}, 
-
-		createHorizontalLines = function(config, container, scale, tickAmount) {
-			var ticks = scale.ticks(tickAmount);
-
-			ticks.push(scale.domain()[1]); 
-
-			container.selectAll("line.horz").data(ticks).enter()
-			    .append("line")
-			        .attr({ "x1" : 0, "x2" : config.width,
-			            "y1" : scaleFor(scale),
-			            "y2" : scaleFor(scale),
-			            "class": "horz"
-			        });	        			
 		};
 
 	var timeAxis = function(parent, renderSums) {
@@ -109,51 +96,13 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			
 
 		return {
-			reset: reset
+			reset: reset,
+			container: container,
+			textPadding: textPadding
 		};
 	};
 
 
-	var TimeAxis = function(config) {
-		var me = this;
-
-		_.assign(this, config);
-
-		_.defaults(this, {
-			timeAxis: d3.svg.axis().scale(this.scale).orient("bottom"),
-			sumAxis: d3.svg.axis().scale(this.scale).orient("bottom")
-	 			.tickFormat(function(d, index) {
-		 			return me.data.y[index].reduce(sum) + me.suffix;
-	 		}),
-			renderSums: true,
-	 		textPadding: { top: 40 }
-		});		 		
-		this.container = this.parent.append("g").attr("class", "axis-x");
-	};
-
-	TimeAxis.prototype.render = function(/* sumAxisEnabled */) {
-		
-    	this.container.append("g").attr("class", "axis-x-main")
-	    		.call(this.timeAxis)
-	  			.selectAll("text")
-	    		.attr("y", this.textPadding.top)
-	    		// .attr("x", 6)
-	    		.style("text-anchor", "middle");
-	    if(this.renderSums) {
-		 	this.container.append("g")
-		    	.attr("class", "axis-x-support")
-		    	.call(this.sumAxis)
-		  		.selectAll("text")
-		    	.attr("y", this.textPadding.top + 20)
-		    	.style("text-anchor", "middle");
-	    }
-    	return this;
-	};
-
-	TimeAxis.prototype.pos = function(/* x, y */) {
-		this.container.attr("transform", "translate(" + (arguments[0] || 0) + ", " + (arguments[1] || 0) + ")")
-		return this;
-	};	
 
 
 	var data = {
@@ -192,7 +141,6 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		vert = function(scale) {
 			vertScale = scale;
 			axes.vertical = true;
-			console.log(vertScale.ticks());
 			return _export;
 		},
 		
@@ -226,37 +174,6 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
             	"x2" : scaleFor(vertScale),
         	}, "vert", vertScale)(vertScale.ticks(d3.time.year, 1));
         },
-
-		// horizontal = function() {
-		// 	var ticks = horzScale.ticks(tickAmount);
-		// 	ticks.push(horzScale.domain()[1]); 
-
-		// 	var lines = base.selectAll("line.horz").data(ticks);
-
-		// 	lines.exit().remove();
-			
-		// 	lines.enter().append("line").attr("class", "horz");
-			
-		//     lines.transition().attr({ "x1" : 0, "x2" : width,
-	 //            "y1" : scaleFor(horzScale),
-	 //            "y2" : scaleFor(horzScale)
-	 //        });	  
-
-	        
-		// },
-
-		// vertical = function() {
-		// 	var lines = base.selectAll("line.vert").data(vertScale.ticks());
-		    
-		//     lines.exit().remove();
-
-		//     lines.enter().append("line").attr("class", "vert");
-
-		//     lines.transition().attr({ "y1" : 0, "y2" : height,
-	 //            "x1" : scaleFor(vertScale),
-	 //            "x2" : scaleFor(vertScale),
-	 //        });	
-		// }
 
 		_export = {
 			horz: horz,
@@ -298,6 +215,33 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	 		reset: reset
 	 	};
 
+	};
+
+	var positionalUtils = {
+			
+		shiftedMargin: function(margin, shift) {
+			return _.assign(_.clone(margin), { left: margin.left + shift/2 });
+		},
+
+		remargin: function(el, margin) {
+			el.transition().attr("transform", "translate(" + (margin.left) + "," + (margin.top) + ")")
+		},
+
+		pan: function(el, margin, distance) {
+			el.transition().attr("transform", "translate(" + (margin.left + distance) + "," + (margin.top) + ")")	
+		},
+
+		resize: function(el, size, margin) {
+			el.transition().attr("width", size.width + margin.left + margin.right)
+  			.attr("height", size.height + margin.top + margin.bottom);
+		},
+
+		innerClip: function(el, size, margin) {
+			el.transition().attr("width", size.width - margin.right)
+  				.attr("height", size.height - margin.bottom)
+  				.attr("x", margin.left)
+  				.attr("y", margin.top);
+		}	
 	};
 
 	// var tooltips = function(base) {
@@ -382,7 +326,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
  // 	 	};
 	// };
 
-	var navigationWidget = function(config, nav) {
+	var navigationWidget = function(config, graphs) {
 		var cont = config.container,
 			left = config.left,
 			right = config.right,
@@ -391,48 +335,40 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 				element.style("visibility", t ? "visible":"hidden");
 			},
 			evaluateVisibility = function() {
-				toggle(left, !nav.depleted());
-				toggle(right, !nav.maxed());
+				toggle(left, !graph.depleted());
+				toggle(right, !graph.maxed());
 			};
 
-		left.on("click", function() { nav.back(); });
-		right.on("click", function() { nav.forward(); });
+		left.on("click", function() { _.each(graphs, function(g) { g.left(); }); });
+		right.on("click", function() { _.each(graphs, function(g) { g.right(); }); });
 
-		console.log(nav);
 	};
 
 
-	var nav = function(data, width, step, graph) {
+	var nav = function(full, windowWidth, step) {
 
-		var cursor = 0, len = data.x.length, width = (width != null || width != undefined) ? width:3, 
+		var cursor = 0, windowWidth = (windowWidth != null || windowWidth != undefined) ? windowWidth:3, 
 			
 			back = function() {
 				if(!depleted())  {
 					cursor -= 1;
-					resetGraph();
 				}
+				return compensate();
 			},
 
 			forward = function() {
 				if(!maxed()) {
 					cursor  += 1;
-					resetGraph();
 				}
+				return compensate();
 			},
 
-			// 0, 2 -> 2, 4 -> step: 2, width: 2 (cursor * step, cursor * step + width)
-			// 0, 2 -> 1, 3 -> step: 1, width: 2
+			// 0, 2 -> 2, 4 -> step: 2, windowWidth: 2 (cursor * step, cursor * step + windowWidth)
+			// 0, 2 -> 1, 3 -> step: 1, windowWidth: 2
 
-			resetGraph = function() {
-				var range = [cursor * width, (cursor + 1) * width];
-				graph.reset(window_(data, compensate([cursor * step, (cursor * step) + width]) ));
-			},
 
-			compensate = function(range) {
-				if(width > (len - range[0])) {
-					return [len - width, len];
-				};
-				return range;
+			compensate = function() {
+				return Math.min(full, cursor * step);
 			},
 
 
@@ -441,8 +377,8 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			},
 
 			maxed = function() {
-				var outerRange = cursor * step + width;
-				return outerRange >= len; //(cursor + 1) === (Math.floor(len / (cursor * step)) + Math.ceil((len % step) / step));
+				var outerRange = cursor * step + windowWidth;
+				return outerRange >= full; //(cursor + 1) === (Math.floor(full / (cursor * step)) + Math.ceil((full % step) / step));
 			};
 
 		return {
@@ -460,11 +396,13 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		};
 	};
 
-	var areaGraph = function(config_, data_, color, tooltipRenderer, gridRenderer) {
+	var areaGraph = function(config, data, color, tooltipRenderer, gridRenderer, pos) {
 		//variables
-		var me = {}, config = config_, data = data_,
-			shift, start, end, max, amountTickSuffix, innerWidth, innerHeight,
-			stackedData;
+		var me = {}, dir,
+			shift, margin, shiftedMargin, start, end, max, amountTickSuffix, innerWidth, innerHeight,
+			stackedData, export_, navigation;
+
+		var id = randomId();
 
 		//constants
 		var xAxisPadding = 100, yTicks = 4, axisTextPadding = { left: 10, top: 15 };
@@ -524,14 +462,13 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 
 		//elements
-		var	canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),
-			content = canvas.append("g").attr("clip-path", "url(#clip-area)"),
-			clip = canvas.append("clipPath").attr("id", "clip-area").append("rect"),
+		var	canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),			
+			clip = canvas.append("clipPath").attr("id", "clip-"+ id).append("rect"),
 
-			//overlay = config.containers.static.append("svg").attr("class", "overlay-area"),
-			grid = inner(content), 
+			grid = inner(canvas), 
+			content = canvas.append("g").attr("clip-path", "url(#clip-"+ id +")"),
 			graph = inner(content), 
-			legend = inner(content), 
+			legend = inner(canvas), 
 
 			title = legend.append("text").attr("class", "heading")
 				.attr("text-anchor", "middle")
@@ -543,20 +480,36 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			tooltips = tooltipRenderer(graph);
 			
 
-		console.log(data);
-		var reset = function(/* newData, newConfig */) {
-			data = arguments[0] || data;
+		var reset = function(/* newData, newConfig */) {			
 			config = arguments[1] || config;
+			data = arguments[0] || data;
+			dataWindow = window_(data, [0, config.segments]);
 			initialize();
+		},
+
+		// direction = function(dir_) {
+		// 	dir = dir_ != null || dir_ != undefined ? dir_:1;
+		// 	return export_;
+		// },
+
+		left = function() {
+			pos.pan(graph, shiftedMargin, - navig.back() * shift);
+		},
+
+		right = function() {
+			pos.pan(graph, shiftedMargin, - navig.forward() * shift);
 		},
 
 		//private
 		
 		initialize = function() {
-			shift = config.width / data.x.length;
+			shift = config.width / config.segments;
 			barWidth = shift / 4;
 			innerWidth = config.width - shift; 
+			outerWidth = shift * (data.x.length - 1);
 			innerHeight = config.height - (xAxisPadding);
+
+			navig = nav(data.x.length, config.segments, 1);
 
 			start = _.first(data.x); 
 			end = _.last(data.x);
@@ -564,8 +517,11 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			max = config.max, //_.max(_.map(data.y, function(item) { return _.reduce(item, sum)})) * 1.6;
 			amountTickSuffix = config.amountTickSuffix;
 
-			timeScale.domain([start, end]).range([0, innerWidth]),
+			timeScale.domain([start, end]).range([0, outerWidth]);
 			amountScale.domain([0, max]).range([innerHeight, 0]);
+
+			margin = config.margin;
+			shiftedMargin = pos.shiftedMargin(margin, shift);
 
 			sizing();
 
@@ -587,7 +543,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		renderGrid = function() {
 			gridRenderer(grid)
 				.horz(amountScale)
-				.vert(paddedTimeScale(config, data))
+				.vert(paddedTimeScale(config, dataWindow))
 				.reset({
 					width: config.width,
 					height: config.height + xAxisPadding,
@@ -611,27 +567,34 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		},
 
 		renderBars = function() {
-			var bars = graph.selectAll(".segment").data(stackedData);      		
-  			bars.enter().append("g").attr("class", "segment").attr("transform", function(d) { return "translate(" + timeScale(d.x) + ",0)"; });
+						
+			var current = graph.selectAll(".segment");
+				current.remove();
+			
+			var bars = graph.selectAll(".segment").data(stackedData);
+
+			//bars.exit().transition().attr("transform", function(d) { return "translate(" + (timeScale(d.x) - 100) + ",0)"; }).remove();      		
+
+
+  			bars.enter().append("g").attr("class", "segment")
+  				.attr("transform", function(d) { return "translate(" + (timeScale(d.x)) + ",0)"; });
 
   			var bands = bars.selectAll("rect").data(function(d) { return d.y; });
       		
       		bands.enter().append("rect")
+     			.attr("height", 0)
+ 				.attr("y", function(d) { return amountScale(d.y1); })
 				.style("opacity", 0)	
       			.style("fill", function(d) { return color(d.series); });
-      		
-      		bands.transition()
+
+      		//var bt = bars.transition().duration(300).attr("transform", function(d) { return "translate(" + timeScale(d.x) + ",0)"; });	
+
+      		bands.transition().duration(200)
       			.style("opacity", 1)
       			.attr("width", barWidth)
       			.attr("x", -barWidth/2)      			
-      			.attr("height", function(d) { return amountScale(d.y0) - amountScale(d.y1); })
-      			.attr("y", function(d) { return amountScale(d.y1); });
-			
-			bars.transition().attr("transform", function(d) { return "translate(" + timeScale(d.x) + ",0)"; }),
-			
-			bands.exit().transition().style("opacity", 0).remove();
-			bars.exit().remove();      		
-
+      			.attr("height", function(d) { return amountScale(d.y0) - amountScale(d.y1); });
+      			//.attr("y", function(d) { return amountScale(d.y1); });
 		},
 
 		renderPointGroups = function() {
@@ -694,16 +657,14 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	    },
 
 		sizing = function() {
-
-			var margin = config.margin,
-				shifted = _.assign(_.clone(margin), { left: margin.left + shift/2 });
-
-			resize(canvas, config, margin);
-			resize(clip, config, margin);
+			pos.resize(canvas, config, margin);
+			pos.innerClip(clip, config, margin);
 			//resize(overlay, config, margin);
-			remargin(grid, margin);
-			remargin(graph, shifted);
-			remargin(legend, shifted);
+			
+			pos.remargin(grid, margin);
+			//pos.remargin(clip, margin);
+			pos.remargin(graph, shiftedMargin);
+			pos.remargin(legend, shiftedMargin);
 
 			repositionTitle();
 		},
@@ -713,294 +674,234 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		},
 
 
-		remargin = function(el, margin) {
-			el.transition().attr("transform", "translate(" + (margin.left) + "," + (margin.top) + ")")
-		},
-
-		resize = function(el, size, margin) {
-			el.transition().attr("width", size.width + margin.left + margin.right)
-  			.attr("height", size.height + margin.top + margin.bottom);
-		},
-
 		repositionTitle = function() {
 			title.transition().attr("x", innerWidth / 2).attr("y", 40)
 		};
 		
-		return {
-			reset: reset
+		export_ = {
+			reset: reset,
+			left: left,
+			right: right
 		};
 
+		return export_;
+
 	};
 
-	// rather thru amd - exports - export the constructed object, don't use prototype
-	// var AreaGraph = function(config, data) {
-	// }
+	var timeline = function(config, data, color, gridRenderer, pos) {
+	 	var config, data, start, shift, positionalSeries, rangedSeries, contentMask, axisMask;
 
-	// _.assign(AreaGraph.prototype, {
-		
-	// 	reset: function(config, data) {
-	// 		var me = this;
-	// 		_.assign(me, { config: config, data: data });
-	// 		me.initialize();
-	// 	},
-		
-	// 	initialize: function() {
-	// 		var me = this;
+		var id = randomId();
 
-	// 		_.assign(me, {
-	// 			shift: me.config.width / (me.data.x.length), 
-	// 			start: _.first(me.data.x), end: _.last(me.data.x),
-	// 			//get maximum per all points cross-series - multiplication is because of a certain padding from above
-	// 			max: _.max(_.map(me.data.y, function(item) { return _.reduce(item, sum) })) * 1.6,
-	// 			amountTickSuffix: me.config.amountTickSuffix,
-	// 			xAxisPadding: 100, 
-	// 			yTicks: 4,		
-	// 			innerWidth: me.config.width - me.shift, innerHeight: me.config.height - (me.xAxisPadding);
-	// 	})		
+	 	var timeScale = d3.time.scale(),
+		 	positionScale = d3.scale.ordinal();
 
-	// 	}
+	 	var rangeKey = function(item) { return item.series + item.position; },
+	 		verticalPosition = function(d) { return positionScale(rangeKey(d)) + 5; },
+	 		textPosition = function(d) { return d.position };
+
+	 	var canvas = config.containers.panned.append("svg").attr("class", "canvas-timeline"),
+			clip = canvas.append("clipPath").attr("id", "clip-"+ id),
+	 		
+	 		grid = inner(canvas),
+			content = canvas.append("g").attr("clip-path", "url(#clip-"+ id +")"),
+	 		timeline = inner(content),
+		 	legend = inner(canvas),
 
 
-	// });
+		 	title = legend.append("text").attr("class", "heading")
+				.attr("text-anchor", "middle")
+				.text("Účinkovanie osoby vo firmách"),
 
+			bottomAxis = timeAxis(timeline, false);
 
-	var createAreaGraph = function(config, data) {
-		
-		var shift = config.width / (data.x.length), 
-			volumes = data.volumesByYear,
-			start = _.first(data.x), end = _.last(data.x),
-			//get maximum per all points cross-series - multiplication is because of a certain padding from above
-			max = _.max(_.map(data.y, function(item) { return _.reduce(item, sum) })) * 1.6,
-			amountTickSuffix = config.amountTickSuffix,
-			xAxisPadding = 100, 
-			yTicks = 4,		
-			innerWidth = config.width - shift, innerHeight = config.height - (xAxisPadding);
+		var reset = function(/* newData, newConfig */) {
+			data = arguments[0] || data;
+			config = arguments[1] || config;
+			dataWindow = window_(data, [0, config.segments]);
+			initialize();
+		},
 
-		//axis scales
+		left = function() {
+			pos.pan(timeline, config.margin, - navig.back() * shift);
+		},
 
+		right = function() {
+			pos.pan(timeline, config.margin, - navig.forward() * shift);
+		},
 
-		var timeScale = d3.time.scale()
-				.domain([start, end])
-				.nice(d3.time.year, data.x.length)
-				.range([0, innerWidth]),
-
-			amountScale = d3.scale.linear()
-				.domain([0, max])
-				//.nice(1)
-				.range([innerHeight, 0]);
-
-		var canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),
-			overlay = config.containers.static.append("svg").attr("class", "overlay-area"),
-			grid = applySizing(config, canvas),
-
-			//create a rect in the size of grid
-
-			graphSizingConfig = _.assign(config, { 
-				margin: _.assign(_.clone(config.margin), { 
-					left: config.margin.left + shift/2 
-				}) 
-			}),			
-			graph = applySizing(graphSizingConfig, canvas),
-			graphOverlay = applySizing(graphSizingConfig, overlay);
-
-		overlay.attr({ width: canvas.attr("width"), height: canvas.attr("height")}).append("text")
-			.attr("class", "heading")
-			.attr("y", 40)
-			.attr("x", config.width / 2)
-			.attr("text-anchor", "middle")
-			.text("Úspešnosť firmy v tendroch za jednotlivé roky");
-
-		createHorizontalLines(_.assign(config, { height: innerHeight}), grid, amountScale, yTicks);
-		
-
-		createVerticalLines(_.assign(config, { height: config.height + xAxisPadding }), grid, paddedTimeScale(config, data));
+		initialize = function() {
+			shift = config.width / config.segments;
+			start = _.first(data.x); end = _.last(data.x);
+			outerWidth = shift * (data.x.length - 1);
 			
-		// area graph
-		var area = d3.svg.area()
-	    	.x(function(d) { return timeScale(d.x); })
-	    	.y0(function(d) { return amountScale(d.y0); })
-	    	.y1(function(d) { return amountScale(d.y0 + d.y); });
+			navig = nav(data.x.length, config.segments, 1);
 
+			denormalizeSeries();
 
-	    // stacked data init
-		var stack = d3.layout.stack().values(function(d) { return d.values; });
+			timeScale
+				.domain([start, end]) //yearEnd(end.getFullYear())
+				.range([0, outerWidth]);
+			
+			positionScale
+				.domain(positionalSeries.map(rangeKey))
+				.rangePoints([config.padding.top + 30, config.height - (config.padding.top + 60)])
 
-		color.domain(data.series);
+			color.domain(data.series);
+
+			renderMasks();
+			renderTimeline();
+			renderGrid();
+			renderXAxis();
+			renderYAxes();
+
+			sizing();
+		},
+
+		denormalizeSeries = function() {
+
+			//denormalize series by position
+			positionalSeries = _.flatten(data.timeline.map(function(item, seriesIndex) {
+				return item.map(function(segment) { 
+					//inject series name into the position object
+					return _.assign(segment, { series: data.series[seriesIndex] }); });
+			}));
+
+			//denormalize series by range 
+			rangedSeries = _.flatten(positionalSeries.map(function(item) {
+				// inject data to range object
+				return item.ranges.map(function(range) { return { from: range[0], to: range[1], series: item.series, position: item.position }; });
+			}));
+		},
+
+	    renderXAxis = function() {
+	    	bottomAxis.reset(data, timeScale, { x: shift/2, y: config.height - 120 }, null);
+	    },
+
+	    renderYAxes = function() {
+			var left = legend.append("g")
+				.attr("class", "labelgroup-left")
+		    	.attr("transform", "translate(" + shift/2 + ",-" + config.labelPadding + ")"),
+
+		    	right = legend.append("g")
+		    	.attr("class", "labelgroup-right")
+		    	.attr("transform", "translate(" + (config.width - shift/2) + ",-" + config.labelPadding + ")");
+		    
+	    	createLegendAxis(left); createLegendAxis(right); 
+	    },
+
+	    renderBackgroundBars = function(container) {
+	    	var bars = container.selectAll(".bar-bg").data(positionalSeries);
+
+	    	bars.exit().remove();
+	    	bars.enter().append("line")
+		        .attr({ "x1" : config.tipCompensation + shift/2, "x2" : config.width - config.tipCompensation - shift/2,
+		            "y1" : verticalPosition,
+		            "y2" : verticalPosition,
+		            "class": "bar-bg"
+		        });
+	        return bars;
+	    },
+
+	    renderTimeline = function() {
+
+	    	renderBackgroundBars(grid);
+	    	var front = timeline.selectAll(".bar").data(rangedSeries);
+
+		    front.exit().remove();
+
+			front.enter().append("line")
+		        .attr({ 
+		        	"x1" : function(d) { 
+		        		var date = yearStart(d.from), 
+		        			compensatedStart = 
+		        				date.getFullYear() == start.getFullYear() ? yearMid(d.from):yearStart(d.from) 
+		        		return timeScale(compensatedStart) + config.tipCompensation; 
+		        	}, 
+		        	"x2" : function(d) { 
+		        		var date = yearEnd(d.to), 
+		        			compensatedEnd = 
+		        				date.getFullYear() == end.getFullYear() ? yearMid(d.to):yearEnd(d.to) 
+		        		return timeScale(compensatedEnd) - config.tipCompensation; 
+		        	},
+		            "y1" : verticalPosition,
+		            "y2" : verticalPosition,
+		            "class": "bar"
+		        })
+		        .style("stroke", function(d) { return color(d.series) });
+	    },
+
+		renderGrid = function() {
+			gridRenderer(grid)
+				.vert(paddedTimeScale(config, dataWindow))
+				.reset({
+					width: config.width,
+					height: config.height
+					//tickAmount: yTicks
+			});
+		},
+
+		createLegendAxis = function(base, cssClass) {
+			return base.selectAll(".label").data(rangedSeries).enter().append("text")
+		    	.attr({"x": 0, "y": verticalPosition, "class": "label"})
+		    	.text(textPosition);
+		},
 		
-		var stackedData = stack(color.domain()
-			.map(function(series, seriesIndex) { 
-				return { 
-					series: series, 
-					values: data.y.map(function(item, innerIndex) { 
-						return { 
-							x: data.x[innerIndex],
-							y: item[seriesIndex]
-						};
-					}) 
+		sizing = function() {
+
+			var margin = config.margin,
+				shifted = pos.shiftedMargin(margin, shift);
+
+			pos.resize(canvas, config, margin);
+			
+			pos.remargin(grid, margin);
+			pos.remargin(timeline, margin);
+			pos.remargin(legend, margin);
+
+			repositionTitle();
+			sizeMasks();
+		},
+
+		sizeMasks = function() {
+			var margin = config.margin,
+				axis = bottomAxis.container,
+				axisTransform = parseTransform(axis.attr("transform")),
+				contentMaskMargin = { 
+					top: margin.top, 
+					left: margin.left + shift / 2 - config.tipCompensation/2, 
+					right: shift - config.tipCompensation/2, 
+					bottom: 0
 				};
-			})
-		);
 
-		// stacked area graph rendering
-		var series = graph.selectAll(".series")
-	      .data(stackedData).enter().append("g")
-	      .attr("class", "series");
-
-	   	series.append("path")
-	      .attr("class", "area")
-	      .attr("d", function(d) { return area(d.values); })
-	      .style("fill", function(d) { return color(d.series); });
-
-
-	    // data points container rendering
-	    var points = graph.selectAll(".points")
-	    	.data(stackedData).enter().append("g")
-	    	.attr("class", "points")
-
-
-	    // point rendering
-	    points.each(function(d) {  
-	    	var group = d3.select(this);
-
-	    	group.selectAll("circle.point").data(function(d) {
-	    		return d.values;
-	    	}).enter().append("circle")
-	    		//enrich the current datum on iteration
-	    		.datum(function(pointDatum) { pointDatum.series = d.series; return pointDatum; })
-		   		.attr("class", "point")
-		   		.attr("cx", function(d) { return timeScale(d.x); })
-		   		.attr("cy", function(d) { return amountScale(d.y0 + d.y); })
-		   		.attr("r", 3)
-		   		.style("opacity", 0)
-		   		.attr("fill", color(group.data()[0].series));
-	    });
-
-	    // coordinate extraction
-	    var coords = graph.selectAll(".point")[0].map(function(point) { 
-	    	var p = d3.select(point);
-	    	return { 
-	    		el: p,
-	    		datum: p.datum(),
-	    		x: parseInt(p.attr("cx")),
-	    		y: parseInt(p.attr("cy"))
-	    	}; 
-		});
-
-
-	    //quadtree optimization for mouseover with snapping radius
-	    
-	    var treeFactory = d3.geom.quadtree()
-	    	.x(function(d) { return d.x; })
-	    	.y(function(d) { return d.y; });
-
-
-	    var root = treeFactory(coords),
-	    	radius = 3;
-
-	 	graph.on("mousemove", function() {
-	 		var coords = d3.mouse(this);
+			console.log(axisTransform);
+			axisMask
+				.attr("transform", "translate(" + (axisTransform.translate[0] - shift/4) + ", " + (parseInt(axisTransform.translate[1]) + bottomAxis.textPadding.top - 10) + ")" )
+				.attr("width", config.width - shift/2)
+				.attr("height", 60);
 			
-			root.visit(function(node, x1, y1, x2, y2) {
-				var p = node.point;
-	 			
-	 			if(p) {
-	 				var dx = coords[0] - node.point.x, dy = coords[1] - node.point.y, 
-	 					rad = Math.sqrt(dx*dx + dy*dy);
+			pos.innerClip(contentMask, config, contentMaskMargin);
 
-	 				if(rad < radius) { 					
-	 					if(!p.inRadius) { 
-		 					p.inRadius = true;
-		 					over(p); 
-	 					} 					
-	 					return true;
-	 				} else if (p.inRadius) {
-						out(p);
-						p.inRadius = false;
-						return true;
-	 				}
-	 			}
+			//pos.innerClip(axisMask, { width})
+		},
 
-	 			return false;
-	 		});
-	 	});
+		renderMasks = function() {
+			contentMask = clip.append("rect");
+			axisMask = clip.append("rect");
+		},
 
+		repositionTitle = function() {
+			title.transition().attr("x", config.width / 2).attr("y", 40)
+		};
 
-	 	//tooltip rendering
+		return {
+			reset: reset,
+			left: left,
+			right: right
+		};
 
-		var tip = d3.tip()
-	  		.attr('class', 'd3-tip')
-	  		.offset([-10, 0])
-	  		.html(function(d) {
-	    		return "<strong>" + d.series + "</strong> <span style='color:red'>" + d.y + "</span>";
-	  		});
-
-	  	graph.call(tip);
-
-	 	var over = function(p) {
-	 		var svgElement = p.el[0][0];
-			//p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
-			tip.show(p.datum, svgElement);
-			d3.select(svgElement).style("opacity", 1);
-	 	};
-
-	 	var out = function(p) {
-	 		var svgElement = p.el[0][0];
-			tip.hide(p.datum, svgElement);
-			d3.select(svgElement).style("opacity", 0);
-	 	};
-
-	 	//axis rendering
-
-	 	var amountAxis = d3.svg.axis()
-	 			.scale(amountScale).orient("right").ticks(yTicks).tickFormat(function(d) {
-	 				return d + amountTickSuffix;
-	 			});
-
- 		var renderYAxes = function(parent) {
-				var textPadding = { left: 10, top: 15 };
-
-		 		parent.append("g")
-			    	.attr("class", "axis-y axis-left")
-			    	.attr("transform", "translate(" + innerWidth + ",0)")
-			    	.call(amountAxis)
-			  		.selectAll("text")
-			    	.attr("x", - textPadding.left)
-			    	.attr("y", textPadding.top)
-			    	.style("text-anchor", "end");
-		 		
-		 		parent.append("g")
-			    	.attr("class", "axis-y axis-right")
-			    	.attr("transform", "translate(0,0)")
-			    	.call(amountAxis)
-			  		.selectAll("text")
-			    	.attr("x", -shift/2 + textPadding.left)
-			    	.attr("y", textPadding.top)
-			    	.style("text-anchor", "start");			    	
-		}
-
-		new TimeAxis({
-	   		parent: graph, scale: timeScale, data: data, suffix: config.amountTickSuffix
-	   	}).pos(0, innerHeight).render();
-    	
-    	//these need to be put in a different svg container entirely, since the whole thing will be panned
-    	renderYAxes(graphOverlay);  	
 
 	};
 
-
-	// var points = { 
-	// 	series: ["Plastika Nitra", "Prvá tunelárska"],
-	// 	x: [2005, 2006, 2007, 2008, 2009, 2010] ,
-	// 	y: [[50, 10], [30, 20], [20, 10], [50, 20], [20, 15], [220, 13]],
-	// 	timeline: [[
-	// 		{ position: "Štatutár", ranges: [[2005, 2008]] },
-	// 		{ position: "Zástupca riaditeľa", ranges: [[2008, 2009]] }
-	// 	],[
-	// 		{ position: "Štatutár", ranges: [[2005, 2007], [2009, 2010]] },
-	// 		{ position: "Zástupca riaditeľa", ranges: [[2005, 2008]] }
-	// 	]]
-	// }; 	
-	    	
 	var createTimeline = function(config, data) {
 
 		var canvas = config.containers.panned.append("svg").attr("class", "canvas-timeline"),
@@ -1220,6 +1121,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		margin: { left: 20, top: 20, bottom: 0, right: 20},
 		padding: {},
 		width: 960, height: 400,
+		segments: 4,
 		amountTickSuffix: " mil €",
 		containers: containers("#area"),
 		max: _.max(_.map(points.y, function(item) { return _.reduce(item, sum)})) * 1.6
@@ -1235,6 +1137,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	var timelineConfig = {
 		margin: _.assign(_.clone(areaConfig.margin), { top: 0 }),
 		width: areaConfig.width,
+		segments: 4,
 		height: 360,
 		padding: { top: 60, bottom: 0},
 		tipCompensation: 4,
@@ -1254,16 +1157,21 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 
 	var navConfig = {
-		container: d3.select("#nav"),
+		container: d3.select("#container"),
 		left: d3.select(".pan.left"),
 		right: d3.select(".pan.right")
 	};
 
 
-	var gr = areaGraph(areaConfig, window_(points, [0,4]) , color, tooltips, grid);
+	var gr = areaGraph(areaConfig, points/*window_(points, [0,4])*/, color, tooltips, grid, positionalUtils);
 	gr.reset();
 	
-	navigationWidget(navConfig, nav(points, 4, 1, gr));
+
+	var tm = timeline(timelineConfig, points, color, grid, positionalUtils);
+	tm.reset();
+
+	navigationWidget(navConfig, [gr, tm]);
+
 
 	//console.log(window_(points, [0,1]));
 
@@ -1278,3 +1186,4 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 
 });
+	

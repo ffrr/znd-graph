@@ -1,0 +1,266 @@
+
+	var createAreaGraph = function(config, data) {
+		
+		var shift = config.width / (data.x.length), 
+			volumes = data.volumesByYear,
+			start = _.first(data.x), end = _.last(data.x),
+			//get maximum per all points cross-series - multiplication is because of a certain padding from above
+			max = _.max(_.map(data.y, function(item) { return _.reduce(item, sum) })) * 1.6,
+			amountTickSuffix = config.amountTickSuffix,
+			xAxisPadding = 100, 
+			yTicks = 4,		
+			innerWidth = config.width - shift, innerHeight = config.height - (xAxisPadding);
+
+		//axis scales
+
+
+		var timeScale = d3.time.scale()
+				.domain([start, end])
+				.nice(d3.time.year, data.x.length)
+				.range([0, innerWidth]),
+
+			amountScale = d3.scale.linear()
+				.domain([0, max])
+				//.nice(1)
+				.range([innerHeight, 0]);
+
+		var canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),
+			overlay = config.containers.static.append("svg").attr("class", "overlay-area"),
+			grid = applySizing(config, canvas),
+
+			//create a rect in the size of grid
+
+			graphSizingConfig = _.assign(config, { 
+				margin: _.assign(_.clone(config.margin), { 
+					left: config.margin.left + shift/2 
+				}) 
+			}),			
+			graph = applySizing(graphSizingConfig, canvas),
+			graphOverlay = applySizing(graphSizingConfig, overlay);
+
+		overlay.attr({ width: canvas.attr("width"), height: canvas.attr("height")}).append("text")
+			.attr("class", "heading")
+			.attr("y", 40)
+			.attr("x", config.width / 2)
+			.attr("text-anchor", "middle")
+			.text("Úspešnosť firmy v tendroch za jednotlivé roky");
+
+		createHorizontalLines(_.assign(config, { height: innerHeight}), grid, amountScale, yTicks);
+		
+
+		createVerticalLines(_.assign(config, { height: config.height + xAxisPadding }), grid, paddedTimeScale(config, data));
+			
+		// area graph
+		var area = d3.svg.area()
+	    	.x(function(d) { return timeScale(d.x); })
+	    	.y0(function(d) { return amountScale(d.y0); })
+	    	.y1(function(d) { return amountScale(d.y0 + d.y); });
+
+
+	    // stacked data init
+		var stack = d3.layout.stack().values(function(d) { return d.values; });
+
+		color.domain(data.series);
+		
+		var stackedData = stack(color.domain()
+			.map(function(series, seriesIndex) { 
+				return { 
+					series: series, 
+					values: data.y.map(function(item, innerIndex) { 
+						return { 
+							x: data.x[innerIndex],
+							y: item[seriesIndex]
+						};
+					}) 
+				};
+			})
+		);
+
+		// stacked area graph rendering
+		var series = graph.selectAll(".series")
+	      .data(stackedData).enter().append("g")
+	      .attr("class", "series");
+
+	   	series.append("path")
+	      .attr("class", "area")
+	      .attr("d", function(d) { return area(d.values); })
+	      .style("fill", function(d) { return color(d.series); });
+
+
+	    // data points container rendering
+	    var points = graph.selectAll(".points")
+	    	.data(stackedData).enter().append("g")
+	    	.attr("class", "points")
+
+
+	    // point rendering
+	    points.each(function(d) {  
+	    	var group = d3.select(this);
+
+	    	group.selectAll("circle.point").data(function(d) {
+	    		return d.values;
+	    	}).enter().append("circle")
+	    		//enrich the current datum on iteration
+	    		.datum(function(pointDatum) { pointDatum.series = d.series; return pointDatum; })
+		   		.attr("class", "point")
+		   		.attr("cx", function(d) { return timeScale(d.x); })
+		   		.attr("cy", function(d) { return amountScale(d.y0 + d.y); })
+		   		.attr("r", 3)
+		   		.style("opacity", 0)
+		   		.attr("fill", color(group.data()[0].series));
+	    });
+
+	    // coordinate extraction
+	    var coords = graph.selectAll(".point")[0].map(function(point) { 
+	    	var p = d3.select(point);
+	    	return { 
+	    		el: p,
+	    		datum: p.datum(),
+	    		x: parseInt(p.attr("cx")),
+	    		y: parseInt(p.attr("cy"))
+	    	}; 
+		});
+
+
+	    //quadtree optimization for mouseover with snapping radius
+	    
+	    var treeFactory = d3.geom.quadtree()
+	    	.x(function(d) { return d.x; })
+	    	.y(function(d) { return d.y; });
+
+
+	    var root = treeFactory(coords),
+	    	radius = 3;
+
+	 	graph.on("mousemove", function() {
+	 		var coords = d3.mouse(this);
+			
+			root.visit(function(node, x1, y1, x2, y2) {
+				var p = node.point;
+	 			
+	 			if(p) {
+	 				var dx = coords[0] - node.point.x, dy = coords[1] - node.point.y, 
+	 					rad = Math.sqrt(dx*dx + dy*dy);
+
+	 				if(rad < radius) { 					
+	 					if(!p.inRadius) { 
+		 					p.inRadius = true;
+		 					over(p); 
+	 					} 					
+	 					return true;
+	 				} else if (p.inRadius) {
+						out(p);
+						p.inRadius = false;
+						return true;
+	 				}
+	 			}
+
+	 			return false;
+	 		});
+	 	});
+
+
+	 	//tooltip rendering
+
+		var tip = d3.tip()
+	  		.attr('class', 'd3-tip')
+	  		.offset([-10, 0])
+	  		.html(function(d) {
+	    		return "<strong>" + d.series + "</strong> <span style='color:red'>" + d.y + "</span>";
+	  		});
+
+	  	graph.call(tip);
+
+	 	var over = function(p) {
+	 		var svgElement = p.el[0][0];
+			//p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
+			tip.show(p.datum, svgElement);
+			d3.select(svgElement).style("opacity", 1);
+	 	};
+
+	 	var out = function(p) {
+	 		var svgElement = p.el[0][0];
+			tip.hide(p.datum, svgElement);
+			d3.select(svgElement).style("opacity", 0);
+	 	};
+
+	 	//axis rendering
+
+	 	var amountAxis = d3.svg.axis()
+	 			.scale(amountScale).orient("right").ticks(yTicks).tickFormat(function(d) {
+	 				return d + amountTickSuffix;
+	 			});
+
+ 		var renderYAxes = function(parent) {
+				var textPadding = { left: 10, top: 15 };
+
+		 		parent.append("g")
+			    	.attr("class", "axis-y axis-left")
+			    	.attr("transform", "translate(" + innerWidth + ",0)")
+			    	.call(amountAxis)
+			  		.selectAll("text")
+			    	.attr("x", - textPadding.left)
+			    	.attr("y", textPadding.top)
+			    	.style("text-anchor", "end");
+		 		
+		 		parent.append("g")
+			    	.attr("class", "axis-y axis-right")
+			    	.attr("transform", "translate(0,0)")
+			    	.call(amountAxis)
+			  		.selectAll("text")
+			    	.attr("x", -shift/2 + textPadding.left)
+			    	.attr("y", textPadding.top)
+			    	.style("text-anchor", "start");			    	
+		}
+
+		new TimeAxis({
+	   		parent: graph, scale: timeScale, data: data, suffix: config.amountTickSuffix
+	   	}).pos(0, innerHeight).render();
+    	
+    	//these need to be put in a different svg container entirely, since the whole thing will be panned
+    	renderYAxes(graphOverlay);  	
+
+	};
+
+
+	
+	var TimeAxis = function(config) {
+		var me = this;
+
+		_.assign(this, config);
+
+		_.defaults(this, {
+			timeAxis: d3.svg.axis().scale(this.scale).orient("bottom"),
+			sumAxis: d3.svg.axis().scale(this.scale).orient("bottom")
+	 			.tickFormat(function(d, index) {
+		 			return me.data.y[index].reduce(sum) + me.suffix;
+	 		}),
+			renderSums: true,
+	 		textPadding: { top: 40 }
+		});		 		
+		this.container = this.parent.append("g").attr("class", "axis-x");
+	};
+
+	TimeAxis.prototype.render = function(/* sumAxisEnabled */) {
+		
+    	this.container.append("g").attr("class", "axis-x-main")
+	    		.call(this.timeAxis)
+	  			.selectAll("text")
+	    		.attr("y", this.textPadding.top)
+	    		// .attr("x", 6)
+	    		.style("text-anchor", "middle");
+	    if(this.renderSums) {
+		 	this.container.append("g")
+		    	.attr("class", "axis-x-support")
+		    	.call(this.sumAxis)
+		  		.selectAll("text")
+		    	.attr("y", this.textPadding.top + 20)
+		    	.style("text-anchor", "middle");
+	    }
+    	return this;
+	};
+
+	TimeAxis.prototype.pos = function(/* x, y */) {
+		this.container.attr("transform", "translate(" + (arguments[0] || 0) + ", " + (arguments[1] || 0) + ")")
+		return this;
+	};	
