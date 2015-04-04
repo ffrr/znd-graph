@@ -264,7 +264,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	};
 
 
-	var nav = function(full, windowWidth, step) {
+	var navigationFn = function(full, windowWidth, step) {
 
 		var cursor = 0, windowWidth = (windowWidth != null || windowWidth != undefined) ? windowWidth:3, 
 			
@@ -278,7 +278,6 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			forward = function() {
 				if(!maxed()) {
 					cursor  += 1;
-					console.log(cursor);
 				}
 				return compensate();
 			},
@@ -290,7 +289,6 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			compensate = function() {
 				return Math.min(full, cursor * step);
 			},
-
 
 			depleted = function() {
 				return cursor === 0;
@@ -316,7 +314,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		};
 	};
 
-	var areaGraph = function(config, data, color, tooltipRenderer, gridRenderer, pos) {
+	var areaGraph = function(config, data, color, tooltipRenderer, gridRenderer, pos, nav) {
 		//variables
 		var me = {}, dir,
 			shift, margin, shiftedMargin, start, end, max, amountTickSuffix, innerWidth, innerHeight,
@@ -608,8 +606,8 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 	};
 
-	var timeline = function(config, data, color, gridRenderer, pos) {
-	 	var config, data, start, shift, positionalSeries, rangedSeries, contentMask, axisMask;
+	var timeline = function(config, data, color, gridRenderer, pos, nav) {
+	 	var config, data, start, shift, positionalSeries, rangedSeries, contentMask, axisMask, navig;
 
 		var id = randomId();
 
@@ -642,7 +640,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			initialize();
 		},
 
-		left = function() {
+		left = function() {			
 			pos.pan(timeline, config.margin, - navig.back() * shift);
 		},
 
@@ -983,14 +981,14 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	};
 
 
-	var gr = areaGraph(areaConfig, points/*window_(points, [0,4])*/, color, tooltips, grid, positionalUtils);
+	var gr = areaGraph(areaConfig, points/*window_(points, [0,4])*/, color, tooltips, grid, positionalUtils, navigationFn);
 	gr.reset();
 	
 
-	var tm = timeline(timelineConfig, points, color, grid, positionalUtils);
+	var tm = timeline(timelineConfig, points, color, grid, positionalUtils, navigationFn);
 	tm.reset();
 
-	navigationWidget(navConfig, gr, tm);
+	navigationWidget(navConfig, [gr, tm]);
 
 
 	//console.log(window_(points, [0,1]));
