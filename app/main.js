@@ -244,87 +244,6 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		}	
 	};
 
-	// var tooltips = function(base) {
- 		
- // 		var treeFactory = d3.geom.quadtree()
- //    		.x(function(d) { return d.x; })
-	//     	.y(function(d) { return d.y; }),
- //    	radius = 3, root, currentHandler;
-
- //    	var tip = d3.tip()
-	//   		.attr('class', 'd3-tip')
-	//   		.offset([-10, 0])
-	//   		.html(function(d) {
-	//     		return "<strong>" + d.series + "</strong> <span style='color:red'>" + d.y + "</span>";
- //  		});
-
-	//   	var toggle = _.curry(function(state, p) {
-	//  		var svgElement = p.el[0][0];
-	// 		//p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
-	// 		tip[state ? "show":"hide"](p.datum, svgElement);
-	// 		d3.select(svgElement).style("opacity", 1);
-	//  	}), 
-
-	//  		over = toggle(true), out = toggle(false),
-
-	//   // 	over = function(p) {
-	//  	// 	var svgElement = p.el[0][0];
-	// 		// //p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
-	// 		// tip.show(p.datum, svgElement);
-	// 		// d3.select(svgElement).style("opacity", 1);
-	//  	// },
-
-	//  	// out = function(p) {
-	//  	// 	var svgElement = p.el[0][0];
-	// 		// tip.hide(p.datum, svgElement);
-	// 		// d3.select(svgElement).style("opacity", 0);
-	//  	// }, 
-
-
-
-	//  	visitor = function(node, x1, y1, x2, y2) {
-	// 		var p = node.point;
- 			
- // 			if(p) {
- // 				var dx = coordPair[0] - node.point.x, dy = coordPair[1] - node.point.y, 
- // 					rad = Math.sqrt(dx*dx + dy*dy);
-
- // 				if(rad < radius) { 					
- // 					if(!p.inRadius) { 
-	//  					p.inRadius = true;
-	//  					over(p); 
- // 					} 					
- // 					return true;
- // 				} else if (p.inRadius) {
-	// 				out(p);
-	// 				p.inRadius = false;
-	// 				return true;
- // 				}
- // 			}
-
- // 			return false;
- // 		},
-
- //    	moveHandlerFactory =  function(newRoot) {
- //    		return function() {
-	//  			var coordPair = d3.mouse(this);
-	// 			newRoot.visit(visitor);
-	// 		}
-	//  	};
-
-	//   	base.call(tip);
-
- // 	 	var reset = function(coords) {
- // 	 		//if(currentHandler) base.off("mousemove", currentHandler);
- // 	 		currentHandler = moveHandlerFactory(treeFactory(coords));
-	// 		base.on("mousemove", currentHandler);
- // 	 	};
-
- // 	 	//export
- // 	 	return {
- // 	 		reset: reset
- // 	 	};
-	// };
 
 	var navigationWidget = function(config, graphs) {
 		var cont = config.container,
@@ -359,6 +278,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			forward = function() {
 				if(!maxed()) {
 					cursor  += 1;
+					console.log(cursor);
 				}
 				return compensate();
 			},
@@ -873,7 +793,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 					bottom: 0
 				};
 
-			console.log(axisTransform);
+			
 			axisMask
 				.attr("transform", "translate(" + (axisTransform.translate[0] - shift/4) + ", " + (parseInt(axisTransform.translate[1]) + bottomAxis.textPadding.top - 10) + ")" )
 				.attr("width", config.width - shift/2)
@@ -902,104 +822,6 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 	};
 
-	var createTimeline = function(config, data) {
-
-		var canvas = config.containers.panned.append("svg").attr("class", "canvas-timeline"),
-			overlay = config.containers.static.append("svg").attr("class", "overlay-timeline"),
-
-			grid = applySizing(config, canvas),
-			timeline = applySizing(config, canvas),	
-			timelineOverlay = applySizing(config, overlay),
-
-			start = _.first(data.x), end = _.last(data.x),
-			shift = config.width / (data.x.length),
-			
-			//graph = applySizing(_.assign(config, { padding: { left: shift/2 }}), canvas);
-		
-			
-			//timelineGridContainer = applySizing(config, d3.select("#grid").append("svg")).attr("class", "bg-grid-timeline");			
-
-			timeScale = d3.time.scale()
-				.domain([start, yearEnd(end.getFullYear())])
-				.nice(d3.time.year)
-				.range([0, config.width]);
-
-			color.domain(data.series);
-
-			overlay.append("text")
-				.attr("class", "heading")
-				.attr("y", 40)
-				.attr("x", config.width / 2)
-				.attr("text-anchor", "middle")
-				.text("Vystupovanie osoby vo firmách");
-
-			createVerticalLines(config, grid, paddedTimeScale(config, data));
-
-			var denormalizedSeriesByPosition = _.flatten(data.timeline.map(function(item, seriesIndex) {
-				return item.map(function(segment) { 
-					//inject series name into the position object
-					return _.assign(segment, { series: data.series[seriesIndex] }); });
-			})),
-				denormalizedSeriesByRange = _.flatten(denormalizedSeriesByPosition.map(function(item) {
-					// inject data to range object
-					return item.ranges.map(function(range) { return { from: range[0], to: range[1], series: item.series, position: item.position }; });
-				}));
-
-			var rangeKey = function(item) { return item.series + item.position; },
-				yScale = d3.scale.ordinal()
-					.domain(denormalizedSeriesByPosition.map(rangeKey))
-					.rangePoints([config.padding.top + 30, config.height - (config.padding.top + 60)]),
-				verticalPosition = function(d) { return yScale(rangeKey(d)) + 5; };
-
-
-			timeline.selectAll(".bar-bg")
-    			.data(denormalizedSeriesByPosition).enter().append("line")
-		        .attr({ "x1" : config.tipCompensation + shift/2, "x2" : config.width - config.tipCompensation - shift/2,
-		            "y1" : verticalPosition,
-		            "y2" : verticalPosition,
-		            "class": "bar-bg"
-		        });
-
-			timeline.selectAll(".bar")
-    			.data(denormalizedSeriesByRange).enter().append("line")
-		        .attr({ 
-		        	"x1" : function(d) { 
-		        		var date = yearStart(d.from), 
-		        			compensatedStart = 
-		        				date.getFullYear() == start.getFullYear() ? yearMid(d.from):yearStart(d.from) 
-		        		return timeScale(compensatedStart) + config.tipCompensation; 
-		        	}, 
-		        	"x2" : function(d) { 
-		        		var date = yearEnd(d.to), 
-		        			compensatedEnd = 
-		        				date.getFullYear() == end.getFullYear() ? yearMid(d.to):yearEnd(d.to) 
-		        		return timeScale(compensatedEnd) - config.tipCompensation; 
-		        	},
-		            "y1" : verticalPosition,
-		            "y2" : verticalPosition,
-		            "class": "bar"
-		        })
-		        .style("stroke", function(d) { return color(d.series) });
-		    
-
-
-		    timelineOverlay.append("g").attr("class", "labelgroup-left")
-		    	.attr("transform", "translate(" + shift/2 + ",-" + config.labelPadding + ")")
-		    	.selectAll(".label").data(denormalizedSeriesByRange).enter().append("text")
-		    	.attr({"x": 0, "y": verticalPosition, "class": "label"})
-		    	.text(function(d) { return d.position });
-
-		    timelineOverlay.append("g").attr("class", "labelgroup-right")
-		    	.attr("transform", "translate(" + (config.width - shift/2) + ",-" + config.labelPadding + ")")
-		    	.selectAll(".label").data(denormalizedSeriesByRange).enter().append("text")
-		    	.attr({"x": 0, "y": verticalPosition, "class": "label"})
-		    	.text(function(d) { return d.position });	
-		   	
-		   	new TimeAxis({
-		   		parent: timeline, scale: timeScale, data: data, renderSums: false
-		   	}).pos(shift/2, config.height - 120).render();
-	};
-
 	var createHorizontalBarChart = function(config, data) {
 
 		var aggregate = _.zip.apply(null, data.y).map(function(arr) { //get the aggregated sum of each series
@@ -1014,8 +836,6 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		barData.map(function(item, index) {
 			return _.assign(item, { runningTotal: index > 0 ? (item.sum + barData[index - 1].runningTotal):item.sum, })
 		});
-
-		console.log(barData);
 
 		var xScale = d3.scale.linear()
 			.domain([0, total])
@@ -1170,7 +990,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	var tm = timeline(timelineConfig, points, color, grid, positionalUtils);
 	tm.reset();
 
-	navigationWidget(navConfig, [gr, tm]);
+	navigationWidget(navConfig, gr, tm);
 
 
 	//console.log(window_(points, [0,1]));
