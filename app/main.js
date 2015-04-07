@@ -83,6 +83,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 				axisEl.transition().style("opacity", 1);
 			},
 
+			height = function() {
+				return textPadding.top + (subAxisEl ? 30:50);
+			},
+
 			render = function() {
 
 				container.attr("transform", "translate(" + pos.x + ", " + pos.y + ")");
@@ -98,7 +102,8 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		return {
 			reset: reset,
 			container: container,
-			textPadding: textPadding
+			textPadding: textPadding,
+			height: height
 		};
 	};
 
@@ -401,8 +406,26 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		var reset = function(/* newData, newConfig */) {			
 			config = arguments[1] || config;
 			data = arguments[0] || data;
+			initDefaults();
 			dataWindow = window_(data, [0, config.segments]);
 			initialize();
+		},
+
+		initDefaults = function() {
+		 	_.defaults(config, {
+		 		padding: {},
+		 		margin: {},
+ 				segments: 7,
+				amountTickSuffix: " mil €"
+		 	});
+
+		 	_.defaults(config.padding, {
+		 		top: 0, bottom: 0
+		 	});
+
+		 	_.defaults(config.margin, {
+		 		 left: 20, top: 20, bottom: 0, right: 20,
+	 		});
 		},
 
 		// direction = function(dir_) {
@@ -607,7 +630,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	};
 
 	var timeline = function(config, data, color, gridRenderer, pos, nav) {
-	 	var config, data, start, shift, positionalSeries, rangedSeries, contentMask, axisMask, navig;
+	 	var config, data, start, shift, innerHeight, positionalSeries, rangedSeries, contentMask, axisMask, navig,
+	 		innerY, titleHeight = 18, titleToTimelinePadding = 20;
+
+	 	//init defaults
 
 		var id = randomId();
 
@@ -636,8 +662,29 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		var reset = function(/* newData, newConfig */) {
 			data = arguments[0] || data;
 			config = arguments[1] || config;
+			initDefaults();
 			dataWindow = window_(data, [0, config.segments]);
 			initialize();
+		},
+
+		initDefaults = function() {
+
+		 	_.defaults(config, {
+		 		padding: {},
+		 		margin: {},
+		 		itemHeight: 35,
+ 				segments: 7,
+				tipCompensation: 4,
+				labelPadding: 15
+		 	});
+
+		 	_.defaults(config.padding, {
+		 		top: 30, bottom: 0
+		 	});
+
+		 	_.defaults(config.margin, {
+		 		 left: 20, top: 0, right: 20, bottom: 0
+	 		});
 		},
 
 		left = function() {			
@@ -651,11 +698,12 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		initialize = function() {
 			shift = config.width / config.segments;
 			start = _.first(data.x); end = _.last(data.x);
-			outerWidth = shift * (data.x.length - 1);
+			outerWidth = shift * (data.x.length - 1);			
 			
 			navig = nav(data.x.length, config.segments, 1);
 
 			denormalizeSeries();
+			computeHeight();
 
 			timeScale
 				.domain([start, end]) //yearEnd(end.getFullYear())
@@ -663,7 +711,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			
 			positionScale
 				.domain(positionalSeries.map(rangeKey))
-				.rangePoints([config.padding.top + 30, config.height - (config.padding.top + 60)])
+				.rangePoints([ innerY, innerHeight + innerY ])
 
 			color.domain(data.series);
 
@@ -675,6 +723,8 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 			sizing();
 		},
+
+
 
 		denormalizeSeries = function() {
 
@@ -692,8 +742,16 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			}));
 		},
 
+		computeHeight = function() {
+			var p = config.padding;
+			innerHeight = positionalSeries.length * config.itemHeight; 
+			innerY = config.padding.top + titleHeight + titleToTimelinePadding;
+			config.height = innerY + innerHeight + p.bottom + bottomAxis.height();
+			
+		},
+
 	    renderXAxis = function() {
-	    	bottomAxis.reset(data, timeScale, { x: shift/2, y: config.height - 120 }, null);
+	    	bottomAxis.reset(data, timeScale, { x: shift/2, y: config.height - bottomAxis.height() }, null);
 	    },
 
 	    renderYAxes = function() {
@@ -787,15 +845,16 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 				contentMaskMargin = { 
 					top: margin.top, 
 					left: margin.left + shift / 2 - config.tipCompensation/2, 
-					right: shift - config.tipCompensation/2, 
+					right: shift - config.tipCompensation / 2, 
 					bottom: 0
 				};
 
-			
 			axisMask
-				.attr("transform", "translate(" + (axisTransform.translate[0] - shift/4) + ", " + (parseInt(axisTransform.translate[1]) + bottomAxis.textPadding.top - 10) + ")" )
-				.attr("width", config.width - shift/2)
-				.attr("height", 60);
+				.attr("transform", "translate(" + 
+					(config.margin.left) + ", " + 
+					(parseInt(axisTransform.translate[1]) + bottomAxis.textPadding.top - 10) + ")" )
+				.attr("width", config.width - config.margin.left - config.margin.right)
+				.attr("height", bottomAxis.height());
 			
 			pos.innerClip(contentMask, config, contentMaskMargin);
 
@@ -808,7 +867,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		},
 
 		repositionTitle = function() {
-			title.transition().attr("x", config.width / 2).attr("y", 40)
+			title.transition().attr("x", config.width / 2).attr("y", config.padding.top)
 		};
 
 		return {
@@ -911,7 +970,13 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		y: [[50, 10], [60, 10], [20, 70], [50, 11], [20, 15], [150, 13], [10, 60]],
 		timeline: [[
 			{ position: "Štatutár", ranges: [[2005, 2008]] },
-			{ position: "Zástupca riaditeľa", ranges: [[2008, 2009]] }
+			{ position: "Zástupca riaditeľa", ranges: [[2008, 2009]] },
+			{ position: "Niktoš", ranges: [[2008, 2009]] },
+			{ position: "Výpalník", ranges: [[2008, 2009]] },
+			{ position: "Honelník", ranges: [[2008, 2009]] },
+			{ position: "Pohonič", ranges: [[2008, 2009]] },
+			{ position: "Pohonič2", ranges: [[2008, 2009]] },
+			{ position: "Pohonič3", ranges: [[2008, 2009]] },
 		],[
 			{ position: "Štatutár", ranges: [[2005, 2007], [2009, 2010]] },
 			{ position: "Zástupca riaditeľa", ranges: [[2005, 2008]] }
@@ -936,30 +1001,20 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		containers = function(selector) { return { panned: gen("panned", selector), static: gen("static", selector)}; };
 
 	var areaConfig = {
-		margin: { left: 20, top: 20, bottom: 0, right: 20},
-		padding: {},
 		width: 960, height: 400,
-		segments: 4,
-		amountTickSuffix: " mil €",
+		segments: 5,
 		containers: containers("#area"),
 		max: _.max(_.map(points.y, function(item) { return _.reduce(item, sum)})) * 1.6
 	},  areaConfig2 = {
-		margin: { left: 20, top: 20, bottom: 0, right: 20},
-		padding: {},
 		width: 660, height: 400,
-		amountTickSuffix: " mil €",
 		containers: containers("#area")
-	} 
+	};
 
 	
 	var timelineConfig = {
-		margin: _.assign(_.clone(areaConfig.margin), { top: 0 }),
 		width: areaConfig.width,
-		segments: 4,
-		height: 360,
-		padding: { top: 60, bottom: 0},
-		tipCompensation: 4,
-		labelPadding: 15,
+		segments: 5,
+		itemHeight: 40,
 		containers: containers("#timeline")
 	};
 
@@ -985,7 +1040,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	gr.reset();
 	
 
-	var tm = timeline(timelineConfig, points, color, grid, positionalUtils, navigationFn);
+	var tm = timeline(timelineConfig, points3, color, grid, positionalUtils, navigationFn);
 	tm.reset();
 
 	navigationWidget(navConfig, [gr, tm]);
