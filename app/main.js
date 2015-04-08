@@ -1,4 +1,6 @@
-define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
+define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $, domb) {
+
+	console.log($);
 
 	var color = d3.scale.category20(), 
 		yearStart = function(year) { return new Date(year, 0, 1); },
@@ -190,31 +192,24 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	};
 
 
-	var tooltips = function(base, overlay) {
+	var tooltips = function(base, renderer, direction, offset) {
 		var tip = d3.tip()
 			.attr("class", "d3-tip")
-			.offset([-10, 0])
-			.html(function(d) {
-	    		return "<strong>test</strong>";
-  			});
+			.offset(offset || [0,0])
+			.direction(direction || "n")
+			.html(renderer);
 
-	  	var toggle = _.curry(function(state, p) {
-	 		var svgElement = p.el[0][0];
-			//p.el.interrupt().transition().ease("easeInQuad").duration(200).attr("stroke-width","5px");
-			tip[state ? "show":"hide"](p.datum, svgElement);
-			d3.select(svgElement).style("opacity", 1);
+	  	var toggle = _.curry(function(state, d) {
+			tip[state ? "show":"hide"](d, this);
 	 	});
 
 	 	base.call(tip);
 
 	 	var reset = function(selection) {
-	 		//listener cleanup implicit, browser dependent (ie?)
 	 		selection
-	 			//.datum(function(d) { console.log(d); })
-	 			//.on("mouseover", function() { console.log("tellmemore"); } /* toggle(true)*/)
-	 			.on("click", function() { console.log("tellmemore"); } /* toggle(true)*/)
-	 			.on("mouseout", tip.hide /* toggle(false)*/);
-	 	}
+	 			.on("mouseover", toggle(true))
+	 			.on("mouseout", toggle(false))
+	 	};
 
 	 	return {
 	 		reset: reset
@@ -319,7 +314,12 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		};
 	};
 
-	var areaGraph = function(config, data, color, tooltipRenderer, gridRenderer, pos, nav) {
+	// var barGraphTooltip = function(d) {
+
+	// };
+
+
+	var barGraph = function(config, data, color, tooltipRenderer, gridRenderer, pos, nav) {
 		//variables
 		var me = {}, dir,
 			shift, margin, shiftedMargin, start, end, max, amountTickSuffix, innerWidth, innerHeight,
@@ -330,28 +330,29 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		//constants
 		var xAxisPadding = 100, yTicks = 4, axisTextPadding = { left: 10, top: 15 };
 
-		var stackingMapperFactory = function(data) {
-			return function(series, seriesIndex) { 
-				return { 
-					series: series, 
-					values: data.y.map(function(item, innerIndex) { 
-						return { 
-							x: data.x[innerIndex],
-							y: item[seriesIndex]
-						};
-					}) 
-				};
-			};
-		};
+		// var stackingMapperFactory = function(data) {
+		// 	return function(series, seriesIndex) { 
+		// 		return { 
+		// 			series: series, 
+		// 			values: data.y.map(function(item, innerIndex) { 
+		// 				return { 
+		// 					x: data.x[innerIndex],
+		// 					y: item[seriesIndex]
+		// 				};
+		// 			}) 
+		// 		};
+		// 	};
+		// };
 
 		var stackedBarData = function(data) {
 			return function(item, i) {
 				var y0 = 0, obj = {};
-				obj.x = data.x[i]; 
-				
+
+				obj.x = data.x[i]; 				
 				obj.y = _.map(color.domain(), function(series, j) {
 					return {
 						series: series,
+						amount: item[j],
 						y0: y0, 
 						y1: y0 += item[j]
 					}
@@ -400,7 +401,28 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			leftAxis = legend.append("g").attr("class", "axis-y axis-left"),
 			rightAxis = legend.append("g").attr("class", "axis-y axis-right"),
 			bottomAxis = timeAxis(graph, true),
-			tooltips = tooltipRenderer(graph);
+			tooltips = tooltipRenderer(graph, function(d, element) {
+				var bullet = "<span class=\"bullet\" style=\"color: <%= color %>\"><span>&#8226;</span></span>",
+	    			company = "<em class=\"company\"><%= company %></em>",
+	    			amount = "<span class=\"amount\"><%= amount %></span>",
+	    			item = _.template(["<li>", bullet, company, amount, "</li>"].join("")),
+	    			list = _.template("<ul><% _.each(model, function(itemData) {%> <%= item(itemData) %> <% }); %></ul>");
+		    		model = _.map(d.y, function(item) {
+		    			return {
+		    				color: color(item.series),
+		    				company: item.series,
+		    				amount: item.amount + config.amountTickSuffix
+		    			}
+		    		});
+
+	    		return list({ model: model, item: item });
+			}, function(d) {
+				if(d.x == start) return "e";
+				return "w";
+			}, function(d) {
+				if(d.x == start) return [0, 10];
+				return [0, -10];
+			});
 			
 
 		var reset = function(/* newData, newConfig */) {			
@@ -492,20 +514,20 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			});
 		},
 
-		renderArea = function() {
-			var series = graph.selectAll(".series")				
-		      	.data(stackedData);
+		// renderArea = function() {
+		// 	var series = graph.selectAll(".series")				
+		//       	.data(stackedData);
 
-		    series.enter()
-		    	.append("path").attr("class", "series")
-		    	.attr("d", function(d) { return flatArea(d.values); })
-		    	.style("fill", function(d) { return color(d.series); })
-		    	.style("opacity", 0);
+		//     series.enter()
+		//     	.append("path").attr("class", "series")
+		//     	.attr("d", function(d) { return flatArea(d.values); })
+		//     	.style("fill", function(d) { return color(d.series); })
+		//     	.style("opacity", 0);
 		    	
-		    series.transition().style("opacity", 1).attr("d", function(d) { return area(d.values); })
+		//     series.transition().style("opacity", 1).attr("d", function(d) { return area(d.values); })
 		    
-		    series.exit().transition().style("opacity", 0).remove();
-		},
+		//     series.exit().transition().style("opacity", 0).remove();
+		// },
 
 		renderBars = function() {
 						
@@ -1036,7 +1058,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	};
 
 
-	var gr = areaGraph(areaConfig, points/*window_(points, [0,4])*/, color, tooltips, grid, positionalUtils, navigationFn);
+	var gr = barGraph(areaConfig, points/*window_(points, [0,4])*/, color, tooltips, grid, positionalUtils, navigationFn);
 	gr.reset();
 	
 
@@ -1053,7 +1075,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	
 	// createHorizontalBarChart(barChartConfig, points);
 	
-	// createAreaGraph(config, points);
+	// createbarGraph(config, points);
 
 	// createTimeline(timelineConfig, points);
 

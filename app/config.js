@@ -7,7 +7,8 @@ require.config({
 	"d3": "../bower_components/d3/d3",
     "c3": "../bower_components/c3/c3",
     "d3-tip": "../bower_components/d3-tip/index",
-    "lodash": "../bower_components/lodash/lodash.min"
+    "lodash": "../bower_components/lodash/lodash.min",
+    "dom": "../bower_components/DOMBuilder/dist/DOMBuilder.html.min"
   },
   urlArgs: "bust=" + (new Date()).getTime()
 });

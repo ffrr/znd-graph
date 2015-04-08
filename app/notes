@@ -470,3 +470,18 @@
  // 	 		reset: reset
  // 	 	};
 	// };
+
+	
+		// var stackingMapperFactory = function(data) {
+		// 	return function(series, seriesIndex) { 
+		// 		return { 
+		// 			series: series, 
+		// 			values: data.y.map(function(item, innerIndex) { 
+		// 				return { 
+		// 					x: data.x[innerIndex],
+		// 					y: item[seriesIndex]
+		// 				};
+		// 			}) 
+		// 		};
+		// 	};
+		// };
