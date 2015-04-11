@@ -1,5 +1,5 @@
-define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $, domb) {
-
+define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
+	"use strict";
 	console.log($);
 
 	var color = d3.scale.category20(), 
@@ -38,10 +38,10 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
     	return b;
 	}
 
-	var paddedTimeScale = function(config, data) {
+	var paddedTimeScale = function(width, data) {
 			var ret = d3.time.scale()
 					.domain([_.first(data.x), yearStart( _.last(data.x).getFullYear() + 1)])
-					.range([0, config.width]);
+					.range([0, width]);
 			return ret;
 		};
 
@@ -219,7 +219,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 
 	var positionalUtils = {
 			
-		shiftedMargin: function(margin, shift) {
+		extendedMargin: function(margin, shift) {
 			return _.assign(_.clone(margin), { left: margin.left + shift/2 });
 		},
 
@@ -228,7 +228,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 		},
 
 		pan: function(el, margin, distance) {
-			el.transition().attr("transform", "translate(" + (margin.left + distance) + "," + (margin.top) + ")")	
+			el.transition().attr("transform", "translate(" + (distance) + "," + 0 + ")")	
 		},
 
 		resize: function(el, size, margin) {
@@ -237,7 +237,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 		},
 
 		innerClip: function(el, size, margin) {
-			el.transition().attr("width", size.width - margin.right)
+			el.transition().attr("width", size.width)
   				.attr("height", size.height - margin.bottom)
   				.attr("x", margin.left)
   				.attr("y", margin.top);
@@ -282,6 +282,16 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 				return compensate();
 			},
 
+			first = function() {
+				cursor = 0;
+				return compensate();
+			},
+
+			last = function() {
+				cursor = full - (windowWidth * step);
+				return compensate();
+			},
+
 			// 0, 2 -> 2, 4 -> step: 2, windowWidth: 2 (cursor * step, cursor * step + windowWidth)
 			// 0, 2 -> 1, 3 -> step: 1, windowWidth: 2
 
@@ -301,7 +311,9 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 
 		return {
 			back: back,
-			forward: forward
+			forward: forward,
+			first: first,
+			last: last
 		};
 	};
 
@@ -322,8 +334,8 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 	var barGraph = function(config, data, color, tooltipRenderer, gridRenderer, pos, nav) {
 		//variables
 		var me = {}, dir,
-			shift, margin, shiftedMargin, start, end, max, amountTickSuffix, innerWidth, innerHeight,
-			stackedData, export_, navigation;
+			columnWidth, margin, dataWindow, barWidth, extendedMargin, start, end, max, amountTickSuffix, innerWidth, innerHeight,
+			stackedData, export_, navig, incSegments;
 
 		var id = randomId();
 
@@ -388,9 +400,8 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 		//elements
 		var	canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),			
 			clip = canvas.append("clipPath").attr("id", "clip-"+ id).append("rect"),
-
-			grid = inner(canvas), 
-			content = canvas.append("g").attr("clip-path", "url(#clip-"+ id +")"),
+			content = canvas.append("g"),
+			grid = inner(content),
 			graph = inner(content), 
 			legend = inner(canvas), 
 
@@ -406,7 +417,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 	    			company = "<em class=\"company\"><%= company %></em>",
 	    			amount = "<span class=\"amount\"><%= amount %></span>",
 	    			item = _.template(["<li>", bullet, company, amount, "</li>"].join("")),
-	    			list = _.template("<ul><% _.each(model, function(itemData) {%> <%= item(itemData) %> <% }); %></ul>");
+	    			list = _.template("<ul><% _.each(model, function(itemData) {%> <%= item(itemData) %> <% }); %></ul>"),
 		    		model = _.map(d.y, function(item) {
 		    			return {
 		    				color: color(item.series),
@@ -424,6 +435,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 				return [0, -10];
 			});
 			
+		canvas.attr("clip-path", "url(#clip-"+ id +")");
 
 		var reset = function(/* newData, newConfig */) {			
 			config = arguments[1] || config;
@@ -456,20 +468,25 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 		// },
 
 		left = function() {
-			pos.pan(graph, shiftedMargin, - navig.back() * shift);
+			pan(navig.back());
 		},
 
 		right = function() {
-			pos.pan(graph, shiftedMargin, - navig.forward() * shift);
+			pan(navig.forward());
+		},
+
+		pan = function(cursor) {
+			var compensation = cursor > 0 ? columnWidth * 0.5:0;
+			pos.pan(content, extendedMargin, - (cursor * columnWidth + compensation));
 		},
 
 		//private
 		
 		initialize = function() {
-			shift = config.width / config.segments;
-			barWidth = shift / 4;
-			innerWidth = config.width - shift; 
-			outerWidth = shift * (data.x.length - 1);
+			columnWidth = config.width / (config.segments - 0.5);
+			barWidth = columnWidth / 4;
+			innerWidth = config.width - columnWidth; 
+			outerWidth = columnWidth * (data.x.length - 1);
 			innerHeight = config.height - (xAxisPadding);
 
 			navig = nav(data.x.length, config.segments, 1);
@@ -484,7 +501,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 			amountScale.domain([0, max]).range([innerHeight, 0]);
 
 			margin = config.margin;
-			shiftedMargin = pos.shiftedMargin(margin, shift);
+			extendedMargin = pos.extendedMargin(margin, columnWidth);
 
 			sizing();
 
@@ -501,14 +518,16 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 			//renderPointGroups();
 			renderYAxes();
 			renderXAxis();
+			
+			pan(navig.last());
 		},
 
 		renderGrid = function() {
 			gridRenderer(grid)
 				.horz(amountScale)
-				.vert(paddedTimeScale(config, dataWindow))
+				.vert(paddedTimeScale(columnWidth * data.x.length, data))
 				.reset({
-					width: config.width,
+					width: columnWidth * data.x.length,
 					height: config.height + xAxisPadding,
 					tickAmount: yTicks
 			});
@@ -541,6 +560,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 
   			bars.enter().append("g").attr("class", "segment")
   				.attr("transform", function(d) { return "translate(" + (timeScale(d.x)) + ",0)"; });
+  				//.attr("x", function(d) { return timeScale(d.x); }).attr("y", 0);
 
   			var bands = bars.selectAll("rect").data(function(d) { return d.y; });
       		
@@ -595,7 +615,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 	 		rightAxis
 	 			.call(amountAxis)	 		
 		    	//.style("opacity", 0)
-		    	.attr("transform", "translate(" + (innerWidth + shift/2 - config.margin.right) + ",0)")		    
+		    	.attr("transform", "translate(" + (innerWidth + columnWidth/2 - config.margin.right) + ",0)")		    
 		  		.selectAll("text")
 		    	//.attr("x", - axisTextPadding.left)
 		    	.attr("y", axisTextPadding.top)
@@ -608,7 +628,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 		    	.attr("transform", "translate(0,0)")
 		    	//.style("opacity", 0)
 		  		.selectAll("text")
-		    	.attr("x", -shift/2 + axisTextPadding.left)
+		    	.attr("x", -columnWidth/2 + axisTextPadding.left)
 		    	.attr("y", axisTextPadding.top)
 		    	.style("text-anchor", "start");	
 
@@ -626,8 +646,8 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 			
 			pos.remargin(grid, margin);
 			//pos.remargin(clip, margin);
-			pos.remargin(graph, shiftedMargin);
-			pos.remargin(legend, shiftedMargin);
+			pos.remargin(graph, extendedMargin);
+			pos.remargin(legend, extendedMargin);
 
 			repositionTitle();
 		},
@@ -652,8 +672,8 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 	};
 
 	var timeline = function(config, data, color, gridRenderer, pos, nav) {
-	 	var config, data, start, shift, innerHeight, positionalSeries, rangedSeries, contentMask, axisMask, navig,
-	 		innerY, titleHeight = 18, titleToTimelinePadding = 20;
+	 	var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, contentMask, axisMask, navig,
+	 		innerY, titleHeight = 18, titleToTimelinePadding = 20, axisTextPadding = { left: 10, top: 15 };
 
 	 	//init defaults
 
@@ -667,19 +687,19 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 	 		textPosition = function(d) { return d.position };
 
 	 	var canvas = config.containers.panned.append("svg").attr("class", "canvas-timeline"),
-			clip = canvas.append("clipPath").attr("id", "clip-"+ id),
-	 		
-	 		grid = inner(canvas),
-			content = canvas.append("g").attr("clip-path", "url(#clip-"+ id +")"),
+			clip = canvas.append("clipPath").attr("id", "clip-"+ id).append("rect"),
+			content = inner(canvas),
+	 		grid = inner(content),
 	 		timeline = inner(content),
 		 	legend = inner(canvas),
-
 
 		 	title = legend.append("text").attr("class", "heading")
 				.attr("text-anchor", "middle")
 				.text("Účinkovanie osoby vo firmách"),
 
 			bottomAxis = timeAxis(timeline, false);
+
+		canvas.attr("clip-path", "url(#clip-"+ id +")")
 
 		var reset = function(/* newData, newConfig */) {
 			data = arguments[0] || data;
@@ -709,18 +729,23 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 	 		});
 		},
 
-		left = function() {			
-			pos.pan(timeline, config.margin, - navig.back() * shift);
+		left = function() {
+			pan(navig.back());
 		},
 
 		right = function() {
-			pos.pan(timeline, config.margin, - navig.forward() * shift);
+			pan(navig.forward());
+		},
+
+		pan = function(cursor) {
+			var compensation = cursor > 0 ? columnWidth * 0.5:0;
+			pos.pan(content, config.margin, - (cursor * columnWidth + compensation));
 		},
 
 		initialize = function() {
-			shift = config.width / config.segments;
+			columnWidth = config.width / (config.segments - 0.5);
 			start = _.first(data.x); end = _.last(data.x);
-			outerWidth = shift * (data.x.length - 1);			
+			outerWidth = columnWidth * (data.x.length - 1);			
 			
 			navig = nav(data.x.length, config.segments, 1);
 
@@ -737,13 +762,15 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 
 			color.domain(data.series);
 
-			renderMasks();
+			//renderMasks();
 			renderTimeline();
 			renderGrid();
 			renderXAxis();
 			renderYAxes();
 
 			sizing();
+
+			pan(navig.last());
 		},
 
 
@@ -773,17 +800,17 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 		},
 
 	    renderXAxis = function() {
-	    	bottomAxis.reset(data, timeScale, { x: shift/2, y: config.height - bottomAxis.height() }, null);
+	    	bottomAxis.reset(data, timeScale, { x: columnWidth/2, y: config.height - bottomAxis.height() }, null);
 	    },
 
 	    renderYAxes = function() {
 			var left = legend.append("g")
 				.attr("class", "labelgroup-left")
-		    	.attr("transform", "translate(" + shift/2 + ",-" + config.labelPadding + ")"),
+		    	.attr("transform", "translate(" + axisTextPadding.left + ",-" + config.labelPadding + ")"),
 
 		    	right = legend.append("g")
 		    	.attr("class", "labelgroup-right")
-		    	.attr("transform", "translate(" + (config.width - shift/2) + ",-" + config.labelPadding + ")");
+		    	.attr("transform", "translate(" + (config.width - axisTextPadding.left) + ",-" + config.labelPadding + ")");
 		    
 	    	createLegendAxis(left); createLegendAxis(right); 
 	    },
@@ -793,7 +820,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 
 	    	bars.exit().remove();
 	    	bars.enter().append("line")
-		        .attr({ "x1" : config.tipCompensation + shift/2, "x2" : config.width - config.tipCompensation - shift/2,
+		        .attr({ "x1" : config.tipCompensation, "x2" : columnWidth * data.x.length - config.tipCompensation,
 		            "y1" : verticalPosition,
 		            "y2" : verticalPosition,
 		            "class": "bar-bg"
@@ -803,7 +830,7 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 
 	    renderTimeline = function() {
 
-	    	renderBackgroundBars(grid);
+	    	renderBackgroundBars(timeline);
 	    	var front = timeline.selectAll(".bar").data(rangedSeries);
 
 		    front.exit().remove();
@@ -811,16 +838,16 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 			front.enter().append("line")
 		        .attr({ 
 		        	"x1" : function(d) { 
-		        		var date = yearStart(d.from), 
-		        			compensatedStart = 
-		        				date.getFullYear() == start.getFullYear() ? yearMid(d.from):yearStart(d.from) 
-		        		return timeScale(compensatedStart) + config.tipCompensation; 
+	        		// var date = yearStart(d.from), 
+	        		// 	compensatedStart = 
+	        		// 		date.getFullYear() == start.getFullYear() ? yearMid(d.from):yearStart(d.from) 
+		        		return timeScale(yearStart(d.from)) + config.tipCompensation; 
 		        	}, 
 		        	"x2" : function(d) { 
-		        		var date = yearEnd(d.to), 
-		        			compensatedEnd = 
-		        				date.getFullYear() == end.getFullYear() ? yearMid(d.to):yearEnd(d.to) 
-		        		return timeScale(compensatedEnd) - config.tipCompensation; 
+		        		// var date = yearEnd(d.to), 
+		        		// 	compensatedEnd = 
+		        		// 		date.getFullYear() == end.getFullYear() ? yearMid(d.to):yearEnd(d.to) 
+		        		return timeScale(yearEnd(d.to)) - config.tipCompensation; 
 		        	},
 		            "y1" : verticalPosition,
 		            "y2" : verticalPosition,
@@ -831,11 +858,10 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 
 		renderGrid = function() {
 			gridRenderer(grid)
-				.vert(paddedTimeScale(config, dataWindow))
+				.vert(paddedTimeScale(columnWidth * data.x.length, data))
 				.reset({
-					width: config.width,
+					width: columnWidth * data.x.length,
 					height: config.height
-					//tickAmount: yTicks
 			});
 		},
 
@@ -848,16 +874,19 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 		sizing = function() {
 
 			var margin = config.margin,
-				shifted = pos.shiftedMargin(margin, shift);
+				shifted = pos.extendedMargin(margin, columnWidth);
 
 			pos.resize(canvas, config, margin);
-			
+			pos.innerClip(clip, config, margin);
+
 			pos.remargin(grid, margin);
 			pos.remargin(timeline, margin);
 			pos.remargin(legend, margin);
 
 			repositionTitle();
-			sizeMasks();
+
+
+			//sizeMasks();
 		},
 
 		sizeMasks = function() {
@@ -866,8 +895,8 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 				axisTransform = parseTransform(axis.attr("transform")),
 				contentMaskMargin = { 
 					top: margin.top, 
-					left: margin.left + shift / 2 - config.tipCompensation/2, 
-					right: shift - config.tipCompensation / 2, 
+					left: margin.left + columnWidth / 2 - config.tipCompensation/2, 
+					right: columnWidth - config.tipCompensation / 2, 
 					bottom: 0
 				};
 
@@ -883,10 +912,10 @@ define(["lodash", "c3", "d3", "jquery", "dom", "d3-tip"], function(_, c3, d3, $,
 			//pos.innerClip(axisMask, { width})
 		},
 
-		renderMasks = function() {
-			contentMask = clip.append("rect");
-			axisMask = clip.append("rect");
-		},
+		// renderMasks = function() {
+		// 	contentMask = clip.append("rect");
+		// 	axisMask = clip.append("rect");
+		// },
 
 		repositionTitle = function() {
 			title.transition().attr("x", config.width / 2).attr("y", config.padding.top)
