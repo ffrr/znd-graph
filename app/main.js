@@ -88,12 +88,13 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 			renderPartialAxis = function(axis, axisEl, y) {
 				
-				axisEl.call(axis).style("opacity", 0)
-					.selectAll("text")
-					.attr("y",  y)
-					.style("text-anchor", "middle");
+				axisEl.call(axis);
 
-				axisEl.transition().style("opacity", 1);
+				axisEl.selectAll("text")
+					.style("text-anchor", "middle")
+					.attr("y",  y);
+
+				//axisEl.transition().style("opacity", 1);
 			},
 
 			height = function() {
@@ -102,7 +103,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 			render = function() {
 
-				container.attr("transform", "translate(" + pos.x + ", " + pos.y + ")");
+				container.transition().attr("transform", "translate(" + pos.x + ", " + pos.y + ")");
 				
 				renderPartialAxis(mainAxis, mainAxisEl, textPadding.top);
 
@@ -568,31 +569,33 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 		renderBars = function() {
 						
-			var current = graph.selectAll(".segment");
-				current.remove();
+			// var current = graph.selectAll(".segment");
+			// 	current.remove();
 			
 			var bars = graph.selectAll(".segment").data(stackedData);
 
 			//bars.exit().transition().attr("transform", function(d) { return "translate(" + (timeScale(d.x) - 100) + ",0)"; }).remove();      		
 
 
-  			bars.enter().append("g").attr("class", "segment")
-  				.attr("transform", function(d) { return "translate(" + (timeScale(d.x)) + ",0)"; });
+  			bars.enter().append("g").attr("class", "segment");
+
+  			bars.transition().attr("transform", function(d) { return "translate(" + (timeScale(d.x)) + ",0)"; });
   				//.attr("x", function(d) { return timeScale(d.x); }).attr("y", 0);
 
   			var bands = bars.selectAll("rect").data(function(d) { return d.y; });
       		
       		bands.enter().append("rect")
-     			.attr("height", 0)
- 				.attr("y", function(d) { return amountScale(d.y1); })
-				.style("opacity", 0)	
+    //  			.attr("height", 0)
+ 			
+				// .style("opacity", 0)	
       			.style("fill", function(d) { return color(d.series); });
 
       		//var bt = bars.transition().duration(300).attr("transform", function(d) { return "translate(" + timeScale(d.x) + ",0)"; });	
 
-      		bands.transition().duration(200)
+      		bands.transition()
       			.style("opacity", 1)
       			.attr("width", barWidth)
+      			.attr("y", function(d) { return amountScale(d.y1); })
       			.attr("x", -barWidth/2)      			
       			.attr("height", function(d) { return amountScale(d.y0) - amountScale(d.y1); });
       			//.attr("y", function(d) { return amountScale(d.y1); });
@@ -689,7 +692,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 	};
 
-	var timeline = function(config, data, color, gridRenderer, pos, nav) {
+	var timeline = function(config, data, color, tooltipRenderer, gridRenderer, pos, nav) {
 	 	var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, contentMask, axisMask, navig,
 	 		innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 20, axisTextPadding = { left: 10, top: 15 };
 
@@ -718,7 +721,24 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 				.attr("text-anchor", "middle")
 				.text("Účinkovanie osoby vo firmách"),
 
-			bottomAxis = timeAxis(timeline, false);
+			bottomAxis = timeAxis(timeline, false),
+
+			tooltips = tooltipRenderer(timeline, function(d, element) {
+				return test;
+				// var bullet = "<span class=\"bullet\" style=\"color: <%= color %>\"><span>&#8226;</span></span>",
+	   //  			company = "<em class=\"company\"><%= company %></em>",
+	   //  			amount = "<span class=\"amount\"><%= amount %></span>",
+	   //  			item = _.template(["<li>", bullet, company, amount, "</li>"].join("")),
+	   //  			list = _.template("<ul><% _.each(model, function(itemData) {%> <%= item(itemData) %> <% }); %></ul>"),
+		  //   		model = _.map(d.y, function(item) {
+		  //   			return {
+		  //   				position: "Test",
+		  //   				company: item.series,
+		  //   				start: new Date(),
+		  //   				end: new Date
+		  //   			}
+		  //   		});
+	    	});
 
 		canvas.attr("clip-path", "url(#clip-"+ id +")")
 
@@ -837,7 +857,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	    	bars.exit().remove();
 	    	bars.enter().append("line");
 
-		    bars.attr({ "x1" : config.tipCompensation, "x2" : columnWidth * data.x.length - config.tipCompensation,
+		    bars.transition().attr({ "x1" : config.tipCompensation, "x2" : columnWidth * data.x.length - config.tipCompensation,
 	            "y1" : verticalPosition,
 	            "y2" : verticalPosition,
 	            "class": "bar-bg"
@@ -853,7 +873,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 			front.enter().append("line");
 		    
-		    front.attr({ 
+		    front.transition().attr({ 
 	        	"x1" : function(d) { 
 	        		return timeScale(yearStart(d.from)) + config.tipCompensation; 
 	        	}, 
@@ -879,9 +899,9 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			var boundBase = base.selectAll(".label").data(rangedSeries);
 			
 			boundBase.exit().remove();
-			boundBase.enter().append("text")
-		    	.attr({"x": 0, "y": verticalPosition, "class": "label"})
-		    	.text(textPosition);
+			boundBase.enter().append("text").text(textPosition);
+
+		   	boundBase.attr({"x": 0, "y": verticalPosition, "class": "label"});
 		},
 		
 		sizing = function() {
@@ -1104,7 +1124,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	gr.reset();
 	
 
-	var tm = timeline(timelineConfig, points3, color, grid, positionalUtils, navigationFn);
+	var tm = timeline(timelineConfig, points3, color, tooltips, grid, positionalUtils, navigationFn);
 	tm.reset();
 
 	navigationWidget(navConfig, [gr, tm]);
