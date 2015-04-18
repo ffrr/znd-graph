@@ -204,12 +204,17 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	};
 
 
-	var tooltips = function(base, renderer, direction, offset) {
+	var tooltips = function(base, renderer, direction, offset, defaultListeners) {
 		var tip = d3.tip()
 			.attr("class", "d3-tip")
+			.attr("id", randomId())
 			.offset(offset || [0,0])
 			.direction(direction || "n")
-			.html(renderer);
+			.html(renderer),
+			applyDefaultListeners = defaultListeners != null ? defaultListeners:true;
+
+		console.log(defaultListeners, applyDefaultListeners);
+
 
 	  	var toggle = _.curry(function(state, d) {
 			tip[state ? "show":"hide"](d, this);
@@ -218,13 +223,17 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	 	base.call(tip);
 
 	 	var reset = function(selection) {
-	 		selection
-	 			.on("mouseover", toggle(true))
-	 			.on("mouseout", toggle(false))
-	 	};
+	 		if(applyDefaultListeners) {
+		 		selection
+		 			.on("mouseover", toggle(true))
+		 			.on("mouseout", toggle(false))
+ 			}
+	 	}, id = function() { return tip.attr("id"); }
 
 	 	return {
-	 		reset: reset
+	 		reset: reset,
+	 		id: id,
+	 		tip: tip
 	 	};
 
 	};
@@ -416,7 +425,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 
 		//elements
-		var	canvas = config.containers.panned.append("svg").attr("class", "canvas-area"),			
+		var	canvas = config.container.append("svg").attr("class", "canvas-area"),			
 			clip = canvas.append("clipPath").attr("id", "clip-"+ id).append("rect"),
 			content = canvas.append("g"),
 			grid = inner(content),
@@ -430,6 +439,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			leftAxis = legend.append("g").attr("class", "axis-y axis-left"),
 			rightAxis = legend.append("g").attr("class", "axis-y axis-right"),
 			bottomAxis = timeAxis(graph, true),
+
 			tooltips = tooltipRenderer(graph, function(d, element) {
 				var bullet = "<span class=\"bullet\" style=\"color: <%= color %>\"><span>&#8226;</span></span>",
 	    			company = "<em class=\"company\"><%= company %></em>",
@@ -707,7 +717,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	 		verticalPosition = function(d) { return positionScale(rangeKey(d)) + 5; },
 	 		textPosition = function(d) { return d.position };
 
-	 	var canvas = config.containers.panned.append("svg").attr("class", "canvas-timeline"),
+	 	var canvas = config.container.append("svg").attr("class", "canvas-timeline"),
 			clip = canvas.append("clipPath").attr("id", "clip-"+ id).append("rect"),
 			content = inner(canvas),
 	 		grid = inner(content),
@@ -721,24 +731,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 				.attr("text-anchor", "middle")
 				.text("Účinkovanie osoby vo firmách"),
 
-			bottomAxis = timeAxis(timeline, false),
-
-			tooltips = tooltipRenderer(timeline, function(d, element) {
-				return test;
-				// var bullet = "<span class=\"bullet\" style=\"color: <%= color %>\"><span>&#8226;</span></span>",
-	   //  			company = "<em class=\"company\"><%= company %></em>",
-	   //  			amount = "<span class=\"amount\"><%= amount %></span>",
-	   //  			item = _.template(["<li>", bullet, company, amount, "</li>"].join("")),
-	   //  			list = _.template("<ul><% _.each(model, function(itemData) {%> <%= item(itemData) %> <% }); %></ul>"),
-		  //   		model = _.map(d.y, function(item) {
-		  //   			return {
-		  //   				position: "Test",
-		  //   				company: item.series,
-		  //   				start: new Date(),
-		  //   				end: new Date
-		  //   			}
-		  //   		});
-	    	});
+			bottomAxis = timeAxis(timeline, false);
 
 		canvas.attr("clip-path", "url(#clip-"+ id +")")
 
@@ -809,6 +802,9 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			renderGrid();
 			renderXAxis();
 			renderYAxes();
+			renderCirclePointer();
+
+			repositionTooltips();
 
 			sizing();
 			pan(currentPan !== null && currentPan !== undefined ? currentPan:navig.last());
@@ -853,15 +849,33 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 	    renderBackgroundBars = function(container) {
 	    	var bars = container.selectAll(".bar-bg").data(positionalSeries);
-
+	    		    	
 	    	bars.exit().remove();
-	    	bars.enter().append("line");
+
+			bars.enter().append("line");
+				//.attr("class", "bar-bg-cont")
+				//.attr("transform", function(d) { return "translate(0, " + verticalPosition(d) + ")" });
+			
+			//added.append("line");				
 
 		    bars.transition().attr({ "x1" : config.tipCompensation, "x2" : columnWidth * data.x.length - config.tipCompensation,
 	            "y1" : verticalPosition,
 	            "y2" : verticalPosition,
 	            "class": "bar-bg"
 	        });
+	    },
+
+	    renderOverlays = function(container) {			
+			var overlays = container.selectAll(".bar-overlay").data(positionalSeries);
+
+			overlays.exit().remove();
+			overlays.enter().append("rect");
+
+			overlays.attr("height", config.itemHeight + 4)
+				.attr("width", columnWidth * data.x.length)
+				.attr("y", function(d) { return verticalPosition(d) - config.itemHeight; })
+				.attr("class", "bar-overlay")
+				.attr("fill", "transparent");
 	    },
 
 	    renderTimeline = function() {
@@ -871,7 +885,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 		    front.exit().remove();
 
-			front.enter().append("line");
+		    front.enter().append("line");
 		    
 		    front.transition().attr({ 
 	        	"x1" : function(d) { 
@@ -884,6 +898,43 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	            "y2" : verticalPosition,
 	            "class": "bar"
 	        }).style("stroke", function(d) { return color(d.series) });
+
+	        renderOverlays(timeline);
+	    },
+
+	    renderCirclePointer = function() {
+	    	var pointer = timeline.append("circle")
+	    		.attr({"r": 4, "fill": "transparent", "stroke": "#FFF", "stroke-width": 2}),
+				tooltipEl = $("#timelineTip"),
+				containerEl = $(config.container[0][0]);
+
+	    	timeline.selectAll(".bar-overlay").on("mousemove", function() {
+	    		var currentShift = pointer[0][0].getCTM().e,
+	    			currentDatum = d3.select(d3.event.srcElement).datum();
+
+	    		pointer.attr({ "cx": d3.event.x - currentShift, "cy": verticalPosition(currentDatum) });	    		
+
+	    		tooltipEl.css({
+	    			left: d3.event.x - tooltipEl.width() / 2 - 6, 
+	    			top: verticalPosition(currentDatum) + containerEl.offset().top - (tooltipEl.height() + 35)
+	    		});
+	    		tooltipEl.html("" + currentDatum.position + "<br/><br/>")
+	    	});
+
+
+
+	    	canvas.on("mouseover", function() {
+				tooltipEl.show();
+	    		pointer.style("visibility", "visible"); 
+	    	});
+
+	    	canvas.on("mouseout", function() {
+	    		if(d3.event.toElement !== tooltipEl[0])  { //add parent detection
+		    		tooltipEl.hide();
+		    		pointer.style("visibility", "hidden"); 
+	    		}
+	    	});
+
 	    },
 
 		renderGrid = function() {
@@ -949,6 +1000,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		// 	contentMask = clip.append("rect");
 		// 	axisMask = clip.append("rect");
 		// },
+
+		repositionTooltips = function() {
+			//tooltips.reset(canvas);
+		},
 
 		repositionTitle = function() {
 			title.transition().attr("x", config.width / 2).attr("y", config.padding.top)
@@ -1087,11 +1142,11 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	var areaConfig = {
 		width: $(window).width(), height: 400,
 		segments: 5,
-		containers: containers("#area"),
+		container: d3.select("#area"),
 		max: _.max(_.map(points.y, function(item) { return _.reduce(item, sum)})) * 1.6
 	},  areaConfig2 = {
 		width: 660, height: 400,
-		containers: containers("#area")
+		container: d3.select("#area")
 	};
 
 	
@@ -1099,7 +1154,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		width: areaConfig.width,
 		segments: 5,
 		itemHeight: 40,
-		containers: containers("#timeline")
+		container: d3.select("#timeline")
 	};
 
 	
