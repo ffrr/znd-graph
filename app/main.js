@@ -731,7 +731,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 				.attr("text-anchor", "middle")
 				.text("Účinkovanie osoby vo firmách"),
 
-			bottomAxis = timeAxis(timeline, false);
+			bottomAxis = timeAxis(timeline, false),
+
+			pointer = timeline.append("circle")
+	    		.attr({"r": 4, "fill": "transparent", "stroke": "#FFF", "stroke-width": 2});
 
 		canvas.attr("clip-path", "url(#clip-"+ id +")")
 
@@ -903,9 +906,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	    },
 
 	    renderCirclePointer = function() {
-	    	var pointer = timeline.append("circle")
-	    		.attr({"r": 4, "fill": "transparent", "stroke": "#FFF", "stroke-width": 2}),
-				tooltipEl = $("#timelineTip"),
+	    	var tooltipEl = $("#timelineTip"),
 				containerEl = $(config.container[0][0]);
 
 	    	timeline.selectAll(".bar-overlay").on("mousemove", function() {
@@ -1018,47 +1019,164 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 	};
 
-	var createHorizontalBarChart = function(config, data) {
+	var horizontalBarChart = function(config, data, color, gridRenderer, pos) {
 
-		var aggregate = _.zip.apply(null, data.y).map(function(arr) { //get the aggregated sum of each series
-			return _.reduce(arr, sum);
-		}),
+		var aggregate, total, barData, computedHeight;
+
+		var xScale = d3.scale.linear(),
+			canvas = config.container.append("svg").attr("class", "canvas-barchart"),
+			barChart = inner(canvas),
+			grid = inner(canvas),
+			amountAxis = d3.svg.axis().orient("bottom").tickFormat(function(d) {
+	 			return d + config.amountTickSuffix;
+ 			}),
+ 			bottomAxis = barChart.append("g").attr("class", "axis-x");
+
+
+
+ 		var reset = function(/* newData, newConfig */) {
+			data = arguments[0] || data;
+			config = arguments[1] || config;
+			initDefaults();
+			initialize();
+		},
+
+		initDefaults = function() {
+
+		 	_.defaults(config, {
+		 		barHeight: 30,
+		 		bottomAxisHeight: 20,
+		 		padding: {},
+		 		margin: {},
+				amountTickSuffix: " mil €"
+			});
+
+			computedHeight = config.barHeight + config.bottomAxisHeight;
+
+		 	_.defaults(config.padding, {
+		 		top: 30, bottom: 40
+		 	});
+
+		 	_.defaults(config.margin, {
+		 		 left: 0, top: 0, right: 0, bottom: 0
+	 		});
+		},
+
+		initialize = function() {
+ 			aggregate = _.zip.apply(null, data.y).map(function(arr) { //get the aggregated sum of each series
+				return _.reduce(arr, sum);
+			});
+
 			total = _.reduce(aggregate, sum);
 
-		var barData = aggregate.map(function(item, index) {
-			return { sum: item, series: data.series[index] }
-		});
+			barData =  aggregate.map(function(item, index) { 
+				return { sum: item, series: data.series[index] }
+			});
 
-		barData.map(function(item, index) {
-			return _.assign(item, { runningTotal: index > 0 ? (item.sum + barData[index - 1].runningTotal):item.sum, })
-		});
+			barData.map(function(item, index) {
+				return _.assign(item, { runningTotal: index > 0 ? (item.sum + barData[index - 1].runningTotal):item.sum, })
+			});
 
-		var xScale = d3.scale.linear()
-			.domain([0, total])
-			.range([0, config.width]);
+			xScale.domain([0, total]).range([0, config.width]);
 
-		var barChart = applySizing(config, config.containers.panned.append("svg").attr("class", "canvas-barchart"));
+			amountAxis.scale(xScale).tickValues([0, total]);
 
-		barChart.selectAll(".segment").data(barData).enter()
-			.append("rect")
-			.attr("x", function(d, index) { return xScale(d.runningTotal - d.sum); })
-			.attr("width", function(d) { return xScale(d.sum); })
-			.attr("height", config.height)
-			.attr("y", 0)
-			.attr("fill", function(d) { return color(d.series); });					
+			renderBarChart();
+			renderGrid();
+			renderXAxis();
 
-		createVerticalLines(_.assign(config, { left: 0, right: 0, top: 0}), barChart, xScale, 26);
+			sizing();
+ 		},
 
-		var axis = d3.svg.axis().scale(xScale).orient("bottom").tickFormat(function(d) {
-	 			return d + config.amountTickSuffix;
- 		}).tickValues([0, total]);
+ 		renderBarChart = function() {
+ 			var bars = barChart.selectAll(".segment").data(barData);
 
-    	barChart.append("g").attr("class", "axis-x")
-			.call(axis)
-			.attr("transform", "translate(0, "+ config.height +")")
-			.selectAll("text")
-			.attr("y", 10)
-			.style("text-anchor", function(d) { return d == 0 ? "start":"end"; });
+ 			bars.exit().remove();
+
+ 			bars.enter()
+				.append("rect").attr("class", "segment");
+
+			bars.attr("height", config.barHeight)
+				.attr("y", 0)
+				.attr("fill", function(d) { return color(d.series); });
+
+			bars.transition().attr("x", function(d, index) { return xScale(d.runningTotal - d.sum); })
+				.attr("width", function(d) { return xScale(d.sum); });
+ 		},
+
+ 		renderGrid = function() {
+			gridRenderer(grid)
+				.vert(xScale)
+				.reset({
+					width: config.width,
+					height: computedHeight
+			});
+ 		},
+
+ 		renderXAxis = function() {
+	    	bottomAxis
+				.call(amountAxis)
+				.attr("transform", "translate(0, "+ config.barHeight +")")
+				.selectAll("text")
+				.attr("y", 10)
+				.style("text-anchor", function(d) { return d == 0 ? "start":"end"; });
+ 		},
+
+		sizing = function() {
+			var margin = config.margin;
+
+			pos.resize(canvas, _.assign(config, { height: computedHeight }), margin);
+
+			pos.remargin(grid, margin);
+			pos.remargin(barChart, margin);
+		};
+
+ 		return {
+ 			reset: reset
+ 		};
+
+
+
+
+
+
+		// var aggregate = ,
+		// 	total = _.reduce(aggregate, sum);
+
+		// var barData = aggregate.map(function(item, index) {
+		// 	return { sum: item, series: data.series[index] }
+		// });
+
+		// barData.map(function(item, index) {
+		// 	return _.assign(item, { runningTotal: index > 0 ? (item.sum + barData[index - 1].runningTotal):item.sum, })
+		// });
+
+		// var xScale = d3.scale.linear()
+		// 	.domain([0, total])
+		// 	.range([0, config.width]);
+
+		// var barChart = applySizing(config, config.containers.panned.append("svg").attr("class", "canvas-barchart"));
+
+		// barChart.selectAll(".segment").data(barData).enter()
+		// 	.append("rect")
+		// 	.attr("x", function(d, index) { return xScale(d.runningTotal - d.sum); })
+		// 	.attr("width", function(d) { return xScale(d.sum); })
+		// 	.attr("height", config.height)
+		// 	.attr("y", 0)
+		// 	.attr("fill", function(d) { return color(d.series); });					
+
+		// createVerticalLines(_.assign(config, { left: 0, right: 0, top: 0}), barChart, xScale, 26);
+
+		// var axis = d3.svg.axis().scale(xScale).orient("bottom").tickFormat(function(d) {
+	 // 			return d + config.amountTickSuffix;
+ 	// 	}).tickValues([0, total]);
+
+  //   	barChart.append("g").attr("class", "axis-x")
+		// 	.call(axis)
+		// 	.attr("transform", "translate(0, "+ config.height +")")
+		// 	.selectAll("text")
+		// 	.attr("y", 10)
+		// 	.style("text-anchor", function(d) { return d == 0 ? "start":"end"; });
 	};
 
 
@@ -1140,7 +1258,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		containers = function(selector) { return { panned: gen("panned", selector), static: gen("static", selector)}; };
 
 	var areaConfig = {
-		width: $(window).width(), height: 400,
+		width: $("#container").width(), height: 400,
 		segments: 5,
 		container: d3.select("#area"),
 		max: _.max(_.map(points.y, function(item) { return _.reduce(item, sum)})) * 1.6
@@ -1159,12 +1277,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 	
 	var barChartConfig = {
-		margin: _.assign(_.clone(areaConfig.margin), { top: 30, bottom: 40 }),
 		width: areaConfig.width,
-		height: 30,
-		padding: { left: 0 },
+		barHeight: 30,
 		amountTickSuffix: areaConfig.amountTickSuffix,
-		containers: containers("#bar")
+		container: d3.select("#bar")
 	};
 
 
@@ -1182,13 +1298,15 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	var tm = timeline(timelineConfig, points3, color, tooltips, grid, positionalUtils, navigationFn);
 	tm.reset();
 
+	var hbc = horizontalBarChart(barChartConfig, points, color, grid, positionalUtils);
+	hbc.reset();
 	navigationWidget(navConfig, [gr, tm]);
 
-
 	$(window).resize(onResizeEnd(function() {
-		areaConfig.width = timelineConfig.width = $(window).width(),
+		barChartConfig.width = areaConfig.width = timelineConfig.width = $("#container").width(),
 		gr.reset(points, areaConfig);
 		tm.reset(points3, timelineConfig);
+		hbc.reset(points, barChartConfig);
 	}));
 
 

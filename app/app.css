@@ -5,6 +5,7 @@ body {
 #container {
 	background-color: #1F5D6E;
 	position: relative;
+  padding: 10px;
 }
 
 #container > div {
