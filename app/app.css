@@ -122,12 +122,21 @@ rect.tooltip {
   left: 0%;
 }
 
+.d3-tip.s:after {
+  margin: -1px 0 0 0;
+  top: -5px;
+  left: 0%;
+  transform: rotate(180deg);
+}
+
 .d3-tip.e:after {
   margin: -1px 0 0 0;
   top: 50%;
   left: -52%;
   transform: rotate(90deg);
 }
+
+
 
 .d3-tip ul {
   list-style-type: none;

@@ -733,7 +733,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 			bottomAxis = timeAxis(timeline, false),
 
-			pointer = timeline.append("circle")
+			pointer = legend.append("circle")
 	    		.attr({"r": 4, "fill": "transparent", "stroke": "#FFF", "stroke-width": 2});
 
 		canvas.attr("clip-path", "url(#clip-"+ id +")")
@@ -805,12 +805,14 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			renderGrid();
 			renderXAxis();
 			renderYAxes();
-			renderCirclePointer();
+			
 
 			repositionTooltips();
 
 			sizing();
 			pan(currentPan !== null && currentPan !== undefined ? currentPan:navig.last());
+
+			renderCirclePointer();
 		},
 
 
@@ -913,16 +915,17 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	    		var currentShift = pointer[0][0].getCTM().e,
 	    			currentDatum = d3.select(d3.event.srcElement).datum();
 
+	    		//console.log(pointer[0][0].getScreenCTM());
 	    		pointer.attr({ "cx": d3.event.x - currentShift, "cy": verticalPosition(currentDatum) });	    		
 
 	    		tooltipEl.css({
 	    			left: d3.event.x - tooltipEl.width() / 2 - 6, 
-	    			top: verticalPosition(currentDatum) + containerEl.offset().top - (tooltipEl.height() + 35)
+	    			top: verticalPosition(currentDatum) + containerEl.offset().top - (tooltipEl.height() + 100)
 	    		});
 	    		tooltipEl.html("" + currentDatum.position + "<br/><br/>")
 	    	});
 
-
+	    	console.log(containerEl.offset());
 
 	    	canvas.on("mouseover", function() {
 				tooltipEl.show();
@@ -1290,16 +1293,16 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		right: d3.select(".pan.right")
 	};
 
+	var hbc = horizontalBarChart(barChartConfig, points, color, grid, positionalUtils);
+	hbc.reset();
 
 	var gr = barGraph(areaConfig, points/*window_(points, [0,4])*/, color, tooltips, grid, positionalUtils, navigationFn);
 	gr.reset();
 	
-
 	var tm = timeline(timelineConfig, points3, color, tooltips, grid, positionalUtils, navigationFn);
 	tm.reset();
 
-	var hbc = horizontalBarChart(barChartConfig, points, color, grid, positionalUtils);
-	hbc.reset();
+
 	navigationWidget(navConfig, [gr, tm]);
 
 	$(window).resize(onResizeEnd(function() {
