@@ -137,7 +137,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 
 	var grid = function(base) {
-		var _export, width, height, horzScale, vertScale, axes = { horizontal: false, vertical: false }, tickAmount;
+		var _export, width, height, horzScale, vertScale, vertTicks, axes = { horizontal: false, vertical: false }, tickAmount;
 
 		var reset = function(newConfig) {
 			width = newConfig.width;
@@ -157,8 +157,9 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 			return _export;
 		},
 
-		vert = function(scale) {
+		vert = function(scale, ticks) {
 			vertScale = scale;
+			vertTicks = ticks;
 			axes.vertical = true;
 			return _export;
 		},
@@ -191,7 +192,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
         	return lines({ "y1" : 0, "y2" : height,
             	"x1" : scaleFor(vertScale),
             	"x2" : scaleFor(vertScale),
-        	}, "vert", vertScale)(vertScale.ticks(d3.time.year, 1));
+        	}, "vert", vertScale)(vertTicks || vertScale.ticks(d3.time.year, 1));
         },
 
 		_export = {
@@ -915,17 +916,14 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	    		var currentShift = pointer[0][0].getCTM().e,
 	    			currentDatum = d3.select(d3.event.srcElement).datum();
 
-	    		//console.log(pointer[0][0].getScreenCTM());
 	    		pointer.attr({ "cx": d3.event.x - currentShift, "cy": verticalPosition(currentDatum) });	    		
 
 	    		tooltipEl.css({
 	    			left: d3.event.x - tooltipEl.width() / 2 - 6, 
-	    			top: verticalPosition(currentDatum) + containerEl.offset().top - (tooltipEl.height() + 100)
+	    			top: verticalPosition(currentDatum) + containerEl.position().top - (tooltipEl.height() + 40) // todo: fix offset
 	    		});
 	    		tooltipEl.html("" + currentDatum.position + "<br/><br/>")
 	    	});
-
-	    	console.log(containerEl.offset());
 
 	    	canvas.on("mouseover", function() {
 				tooltipEl.show();
@@ -1109,10 +1107,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
  		renderGrid = function() {
 			gridRenderer(grid)
-				.vert(xScale)
+				.vert(xScale, xScale.ticks(10))
 				.reset({
 					width: config.width,
-					height: computedHeight
+					height: config.barHeight
 			});
  		},
 
@@ -1260,8 +1258,9 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	var gen = function(klass, selector) { return d3.select(selector).append("div").attr("class", klass); },
 		containers = function(selector) { return { panned: gen("panned", selector), static: gen("static", selector)}; };
 
+
 	var areaConfig = {
-		width: $("#container").width(), height: 400,
+		width: $("#container").width() - 15, height: 400,
 		segments: 5,
 		container: d3.select("#area"),
 		max: _.max(_.map(points.y, function(item) { return _.reduce(item, sum)})) * 1.6
@@ -1302,6 +1301,7 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	var tm = timeline(timelineConfig, points3, color, tooltips, grid, positionalUtils, navigationFn);
 	tm.reset();
 
+	console.log($("#container").width(), areaConfig.width);
 
 	navigationWidget(navConfig, [gr, tm]);
 
