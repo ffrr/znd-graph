@@ -817,14 +817,31 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		},
 
 
+		generateTooltipDescription = function(segment) {
+			var company = "<em class=\"company\"><%= company %></em>",
+    			position = "<span class=\"position\"><%= position %></span>",
+    			ranges = "<span class=\"ranges\"><%= _.map(ranges, function(range) { return range.from + ' - ' + range.to; }).join(', ') %></span>",
+    			tpl = _.template(["<div class=\"tooltip-timeline\">", company, position, ranges, "</div>"].join("")),	    			
+	    		model = {
+	    				company: segment.series,
+	    				position: segment.position,
+	    				ranges: _.map(segment.ranges, function(range) {
+	    					var from = range[0].toLocaleDateString("sk-SK"),
+	    						to = range[1] instanceof Date ? range[1].toLocaleDateString("sk-SK"):"súčasnosť";
+    						return { from: from, to: to };
+	    				})
+	    		};
+	    	return tpl(model);
+		},
 
 		denormalizeSeries = function() {
 
 			//denormalize series by position
 			positionalSeries = _.flatten(data.timeline.map(function(item, seriesIndex) {
 				return item.map(function(segment) { 
-					//inject series name into the position object
-					return _.assign(segment, { series: data.series[seriesIndex] }); });
+					var ret = _.assign(segment, { series: data.series[seriesIndex] });
+					return _.assign(ret, { tooltipDescription: generateTooltipDescription(ret) });
+				})
 			}));
 
 			//denormalize series by range 
@@ -895,10 +912,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		    
 		    front.transition().attr({ 
 	        	"x1" : function(d) { 
-	        		return timeScale(yearStart(d.from)) + config.tipCompensation; 
+	        		return timeScale(d.from) + config.tipCompensation; 
 	        	}, 
 	        	"x2" : function(d) { 
-	        		return timeScale(yearEnd(d.to)) - config.tipCompensation; 
+	        		return (d.to instanceof Date ? timeScale(d.to):timeScale(yearEnd(end.getFullYear()))) - config.tipCompensation; 
 	        	},
 	            "y1" : verticalPosition,
 	            "y2" : verticalPosition,
@@ -920,9 +937,10 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 
 	    		tooltipEl.css({
 	    			left: d3.event.x - tooltipEl.width() / 2 - 6, 
-	    			top: verticalPosition(currentDatum) + containerEl.position().top - (tooltipEl.height() + 40) // todo: fix offset
+	    			top: verticalPosition(currentDatum) + containerEl.position().top - (tooltipEl.height() + 40)
 	    		});
-	    		tooltipEl.html("" + currentDatum.position + "<br/><br/>")
+
+	    		tooltipEl.html(currentDatum.tooltipDescription)
 	    	});
 
 	    	canvas.on("mouseover", function() {
@@ -931,7 +949,8 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	    	});
 
 	    	canvas.on("mouseout", function() {
-	    		if(d3.event.toElement !== tooltipEl[0])  { //add parent detection
+	    		var toParent = _.includes($(d3.event.toElement).parents().get(), tooltipEl[0]);
+	    		if(d3.event.toElement !== tooltipEl[0] && !toParent)  { //add parent detection
 		    		tooltipEl.hide();
 		    		pointer.style("visibility", "hidden"); 
 	    		}
@@ -1227,25 +1246,32 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 		x: [2005, 2006, 2007, 2008, 2009, 2010, 2011] ,
 		y: [[50, 10], [60, 10], [20, 70], [50, 11], [20, 15], [150, 13], [10, 60]],
 		timeline: [[
-			{ position: "Štatutár", ranges: [[2005, 2008]] },
-			{ position: "Zástupca riaditeľa", ranges: [[2008, 2009]] },
-			{ position: "Niktoš", ranges: [[2008, 2009]] },
-			{ position: "Výpalník", ranges: [[2008, 2009]] },
-			{ position: "Honelník", ranges: [[2008, 2009]] },
-			{ position: "Pohonič", ranges: [[2008, 2009]] },
-			{ position: "Pohonič2", ranges: [[2008, 2009]] },
-			{ position: "Pohonič3", ranges: [[2008, 2009]] },
+			{ position: "Štatutár", ranges: [["2005-03-01", "2008-02-01"]] },
+			{ position: "Zástupca riaditeľa", ranges: [["2008-08-08", "2009-05-02"]] },
 		],[
-			{ position: "Štatutár", ranges: [[2005, 2007], [2009, 2010]] },
-			{ position: "Zástupca riaditeľa", ranges: [[2005, 2008]] }
+			{ position: "Štatutár", ranges: [["2005-02-03", "2007-09-27"], ["2009-12-12", "2010-01-01"]] },
+			{ position: "Zástupca riaditeľa", ranges: [["2005-06-01", "2008-11-18"]] }
 		],[
-			{ position: "Kotolník", ranges: [[2005, 2011]] },
+			{ position: "Kotolník", ranges: [["2005-04-04", null]] },
 		]]
 	};
 
 	points3.x = points3.x.map(function(year) {
 		return yearStart(year);
 	});
+
+	points3.timeline = points3.timeline.map(function(series) {
+		
+		return series.map(function(position) {
+			position.ranges = position.ranges.map(function(range) {
+				return range.map(function(dateStr) {
+					return typeof dateStr === "string" ? new Date(Date.parse(dateStr)):null;
+				})
+			});
+			return position;
+		})
+	});
+
 
 	// points.timeline = points.timeline.map(function(series) {
 	// 	return series.map(function(position) { 
@@ -1301,7 +1327,6 @@ define(["lodash", "c3", "d3", "jquery", "d3-tip"], function(_, c3, d3, $) {
 	var tm = timeline(timelineConfig, points3, color, tooltips, grid, positionalUtils, navigationFn);
 	tm.reset();
 
-	console.log($("#container").width(), areaConfig.width);
 
 	navigationWidget(navConfig, [gr, tm]);
 

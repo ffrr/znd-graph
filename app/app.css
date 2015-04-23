@@ -82,11 +82,11 @@ rect.tooltip {
   font-weight: bold;
   padding: 6px;
   background-color: white;
-  color: #315B68;
+  /*color: #315B68;*/
   border-radius: 3px;
   z-index: 1000;
   font-family: sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   box-shadow: 2px 2px 1px -1px rgba(0,0,0,0.6);
 }
 
@@ -264,6 +264,25 @@ h2 {
   right: 0;
 }
 
+.tooltip-timeline * {
+  display: block;
+  line-height: 1.5em;
+  color: black;
+  font-weight: normal;
+}
+
+.tooltip-timeline .company {
+  font-weight: bold;
+  font-style: normal;
+}
+
+.tooltip-timeline .position {
+}
+
+.tooltip-timeline .ranges { 
+  color: #7cb8c4;
+
+}
 
 
 
