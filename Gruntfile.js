@@ -37,6 +37,13 @@ module.exports = function(grunt) {
     qunit: {
       files: ['test/**/*.html']
     },
+    copy: {
+      index: {
+        src: 'index.dist.html',
+        dest: 'dist/'
+      }
+    },
+
     jshint: {
       gruntfile: {
         options: {
@@ -74,13 +81,27 @@ module.exports = function(grunt) {
     requirejs: {
       compile: {
         options: {
-          name: 'config',
+          name: 'znd-graph',
           mainConfigFile: 'app/config.js',
           out: '<%= concat.dist.dest %>',
-          optimize: 'none'
+          optimize: 'none',
+          include: ['../bower_components/requirejs/require.js']
         }
       }
     },
+
+    cssmin: {
+      target: {
+        files: [{
+          expand: true,
+          cwd: 'app',
+          src: '*.css',
+          dest: 'dist/',
+          ext: '.min.css'
+        }]
+      }
+    },   
+
     connect: {
       development: {
         options: {
@@ -119,9 +140,13 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-requirejs');
   grunt.loadNpmTasks('grunt-contrib-connect');
 
+  grunt.loadNpmTasks('grunt-contrib-cssmin');
+  grunt.loadNpmTasks('grunt-contrib-copy');
+
   // Default task.
   grunt.registerTask('default', ['jshint', 'qunit', 'clean', 'requirejs', 'concat', 'uglify']);
   grunt.registerTask('preview', ['connect:development']);
   grunt.registerTask('preview-live', ['default', 'connect:production']);
+  grunt.registerTask('compile', ['clean', 'requirejs', 'copy', 'cssmin']);
 
 };

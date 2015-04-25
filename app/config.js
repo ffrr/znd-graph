@@ -1,3 +1,4 @@
+"use strict";
 require.config({
   // make components more sensible
   // expose jquery 
@@ -12,8 +13,8 @@ require.config({
   urlArgs: "bust=" + (new Date()).getTime()
 });
 
-if (!window.requireTestMode) {
-  require(['main'], function(){ });
+if (window.requireTestMode) {
+  require(['test'], function(){ });
 }
 
 
