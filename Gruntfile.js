@@ -31,7 +31,7 @@ module.exports = function(grunt) {
       },
       dist: {
         src: '<%= concat.dist.dest %>',
-        dest: 'dist/require.min.js'
+        dest: 'dist/znd-graph.min.js'
       },
     },
     qunit: {
@@ -41,6 +41,12 @@ module.exports = function(grunt) {
       index: {
         src: 'index.dist.html',
         dest: 'dist/'
+      },
+      deploy: {
+        expand: true,
+        cwd: './dist/',
+        src: ['graph.min.css', 'znd-graph.min.js'], 
+        dest: './../znasichdani/system/'            
       }
     },
 
@@ -147,6 +153,7 @@ module.exports = function(grunt) {
   grunt.registerTask('default', ['jshint', 'qunit', 'clean', 'requirejs', 'concat', 'uglify']);
   grunt.registerTask('preview', ['connect:development']);
   grunt.registerTask('preview-live', ['default', 'connect:production']);
-  grunt.registerTask('compile', ['clean', 'requirejs', 'copy', 'cssmin']);
+  grunt.registerTask('compile', ['clean', 'requirejs', 'uglify', 'copy:index', 'cssmin']);
+  grunt.registerTask('deploy', ['compile', 'copy:deploy'])
 
 };

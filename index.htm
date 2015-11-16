@@ -8,19 +8,20 @@
   </script>
   <script data-main="app/config" src="bower_components/requirejs/require.js"></script>
   <link href="bower_components/c3/c3.css" rel="stylesheet" type="text/css">
-  <link href="app/app.css?bust=8" rel="stylesheet" type="text/css">
+  <link href="app/graph.css?bust=8" rel="stylesheet" type="text/css">
 </head>
 <body>
-  <div id="container">
-    <div id="bar"></div>
-    <div id="navigable">
-      <div id="area"></div>
-      <div id="timeline">
-        <div id="timelineTip" class="d3-tip d3-tip-custom n">Toto je popiska kurzora.</div>
+  <div id="controls"></div>
+  <div id="graph" class="znd-graph">
+    <div class="bar"></div>
+    <div class="navigable">
+      <div class="area"></div>
+      <div class="timeline">
+        <div class="d3-tip d3-tip-custom n">Toto je popiska kurzora.</div>
       </div>    
 
       <div class="pan left"><span>&lt;</span></div>
-      <div class="pan right"/><span>&gt;</span></div>
+      <div class="pan right"><span>&gt;</span></div>
     </div>
 
   </div>
