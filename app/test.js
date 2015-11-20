@@ -1,6 +1,6 @@
 "use strict";
 
-define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-graph-controls"], function(app, _, util, navig, controls) {
+define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-graph-controls", "znd-graph-filtering"], function(app, _, util, navig, controls, filter) {
     
 
     var containerSelector = "#graph";
@@ -117,16 +117,18 @@ define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-grap
     var tm = app.timeline(timelineConfig, points3);
     tm.reset();
 
-    var ctrl = controls({ container: d3.select("#controls") }, points);
+    var ctrl = controls({ container: d3.select("#pie") }, points);
 
     ctrl.reset();
+
+    filter(points, ctrl, [gr, tm, hbc]);
 
     navig.widget(navConfig, [gr, tm]);
 
     $(window).resize(util.onResizeEnd(function() {
         barChartConfig.width = areaConfig.width = timelineConfig.width = $(containerSelector).width(),
         gr.reset(points, areaConfig);
-        tm.reset(points3, timelineConfig);
+        tm.reset(points, timelineConfig);
         hbc.reset(points, barChartConfig);
     }));
 });

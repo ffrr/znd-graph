@@ -1,5 +1,5 @@
 "use strict";
-define("util",["lodash"], function(_) {
+define("util",["lodash", "jquery"], function(_, $) {
     var export_ = {
         yearStart: function(year) { 
             return new Date(year, 0, 1); 
@@ -31,6 +31,12 @@ define("util",["lodash"], function(_) {
 
     };
 
+    var bus = {
+        on: _.bind($(document).on, $(document)),
+        off: _.curry($.fn.off)(document),
+        fire: _.bind($(document).trigger, $(document))
+    };
+
 
     var aggregates = function(data)  {
         return _.zip.apply(null, data.y).map(function(arr) { //get the aggregated sum of each series
@@ -40,7 +46,7 @@ define("util",["lodash"], function(_) {
         return _.reduce(aggregates(data), export_.sum);
     };
 
-    _.assign(export_, { aggregates: aggregates, totals: totals })
+    _.assign(export_, { aggregates: aggregates, totals: totals, bus: bus })
 
     return export_;
 });
