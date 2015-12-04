@@ -1,6 +1,6 @@
 "use strict";
 
-define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-graph-controls", "znd-graph-filtering"], function(app, _, util, navig, controls, filter) {
+define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-graph-controls", "znd-graph-filtering", "znd-graph-config"], function(app, _, util, navig, controls, filter, globalConfig) {
     
 
     var containerSelector = "#graph";
@@ -47,7 +47,7 @@ define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-grap
     var points3 = { 
         series: ["Plastika Nitra", "Prvá tunelárska", "Váhostav"],
         x: [2005, 2006, 2007, 2008, 2009, 2010, 2011] ,
-        y: [[50, 10], [60, 10], [20, 70], [50, 11], [20, 15], [150, 13], [10, 60]],
+        y: [[60, 10, 40], [60, 10, 40], [20, 70, 15], [20, 15, 30], [150, 13, 50 ], [100, 60, 40], [30, 20, 10]],
         timeline: [[
             { position: "Štatutár", ranges: [["2005-03-01", "2008-02-01"]] },
             { position: "Zástupca riaditeľa", ranges: [["2008-08-08", "2009-05-02"]] },
@@ -108,27 +108,32 @@ define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-grap
         right: d3.select(containerSelector + " .pan.right")
     };
 
-    var hbc = app.horizontalBarChart(barChartConfig, points);
+    
+    globalConfig.colors.init(points3.series);
+
+    _.each([timelineConfig, barChartConfig, areaConfig], function(obj) {
+        _.assign(obj, { color: globalConfig.colors.getColor })
+    });
+
+    var hbc = app.horizontalBarChart(barChartConfig, points3);
     hbc.reset();
 
-    var gr = app.barGraph(areaConfig, points/*window_(points, [0,4])*/);
+    var gr = app.barGraph(areaConfig, points3/*window_(points, [0,4])*/);
     gr.reset();
     
     var tm = app.timeline(timelineConfig, points3);
     tm.reset();
 
-    var ctrl = controls({ container: d3.select("#pie") }, points);
+    var ctrl = controls({ container: d3.select("#pie") });
 
-    ctrl.reset();
-
-    filter(points, ctrl, [gr, tm, hbc]);
+    filter(points3, ctrl, [gr, tm, hbc], true);
 
     navig.widget(navConfig, [gr, tm]);
 
     $(window).resize(util.onResizeEnd(function() {
         barChartConfig.width = areaConfig.width = timelineConfig.width = $(containerSelector).width(),
-        gr.reset(points, areaConfig);
-        tm.reset(points, timelineConfig);
-        hbc.reset(points, barChartConfig);
+        gr.reset(points3, areaConfig);
+        tm.reset(points3, timelineConfig);
+        hbc.reset(points3, barChartConfig);
     }));
 });

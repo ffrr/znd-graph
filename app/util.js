@@ -33,7 +33,7 @@ define("util",["lodash", "jquery"], function(_, $) {
 
     var bus = {
         on: _.bind($(document).on, $(document)),
-        off: _.curry($.fn.off)(document),
+        //off: _.curry($.fn.off)(document),
         fire: _.bind($(document).trigger, $(document))
     };
 

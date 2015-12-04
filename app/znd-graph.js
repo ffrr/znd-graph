@@ -1,5 +1,5 @@
 "use strict";
-define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigation", "lodash", "c3", "d3", "jquery", "util"], function(graphConfig, support, navigation, _, c3, d3, $, util) {
+define("znd-graph",["znd-graph-support", "znd-graph-navigation", "lodash", "c3", "d3", "jquery", "util"], function(support, navigation, _, c3, d3, $, util) {
     
     var tooltipRenderer = support.tooltips, 
         gridRenderer = support.grid, 
@@ -7,8 +7,8 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
         paddedTimeScale = support.paddedTimeScale,
         window_ = support.window_,
         timeAxis = support.timeAxis,
-        nav = navigation.navigation,
-        color = graphConfig.colors;
+        nav = navigation.navigation;
+
 
     var inner = function(base) {
         return base.append("g");
@@ -31,7 +31,7 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
             columnWidth, margin, dataWindow, barWidth, extendedMargin, start, end, max, amountTickSuffix, innerWidth, innerHeight,
             stackedData, export_, navig, incSegments, currentPan;
 
-        var id = util.randomId();
+        var id = util.randomId(), color = config.color;
 
         //constants
         var xAxisPadding = 100, yTicks = 4, axisTextPadding = { left: 10, top: 15 };
@@ -39,9 +39,8 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
         var stackedBarData = function(data) {
             return function(item, i) {
                 var y0 = 0, obj = {};
-
                 obj.x = data.x[i];              
-                obj.y = _.map(color.domain(), function(series, j) {
+                obj.y = _.map(/* color.domain() */data.series, function(series, j) {
                     return {
                         series: series,
                         amount: item[j],
@@ -182,7 +181,7 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
 
             sizing();
 
-            color.domain(data.series);
+            //color.domain(data.series);
             //stackedData = stack(color.domain().map(stackingMapperFactory(data)));
             
             stackedData = _.map(data.y, stackedBarData(data));
@@ -229,18 +228,19 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
                                     
             var bars = graph.selectAll(".segment").data(stackedData);
 
-
+            bars.exit().remove();
             bars.enter().append("g").attr("class", "segment");
 
             bars.transition().attr("transform", function(d) { return "translate(" + (timeScale(d.x)) + ",0)"; });
 
             var bands = bars.selectAll("rect").data(function(d) { return d.y; });
             
-            bands.enter().append("rect")
-                .style("fill", function(d) { return color(d.series); });
+            bands.exit().remove();
 
-
+            bands.enter().append("rect").style("opacity", 0);
+            
             bands.transition()
+                .style("fill", function(d) { return color(d.series); })
                 .style("opacity", 1)
                 .attr("width", barWidth)
                 .attr("y", function(d) { return amountScale(d.y1); })
@@ -335,12 +335,13 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
 
     var timeline = function(config, data) {
 
-        var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, contentMask, axisMask, navig,
+        var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, navig,
             innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 20, axisTextPadding = { left: 10, top: 15 };
 
         //init defaults
 
-        var id = util.randomId();
+        var id = util.randomId(),
+            color = config.color;
 
         var timeScale = d3.time.scale(),
             positionScale = d3.scale.ordinal();
@@ -430,7 +431,7 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
                 .domain(positionalSeries.map(rangeKey))
                 .rangePoints([ innerY, innerHeight + innerY ])
 
-            color.domain(data.series);
+            //color.domain(data.series);
 
             //renderMasks();
             renderTimeline();
@@ -449,6 +450,7 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
 
 
         generateTooltipDescription = function(segment) {
+
             var company = "<em class=\"company\"><%= company %></em>",
                 position = "<span class=\"position\"><%= position %></span>",
                 ranges = "<span class=\"ranges\"><%= _.map(ranges, function(range) { return range.from + ' - ' + range.to; }).join(', ') %></span>",
@@ -457,7 +459,7 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
                         company: segment.series,
                         position: segment.position,
                         ranges: _.map(segment.ranges, function(range) {
-                            var from = range[0].toLocaleDateString("sk-SK"),
+                            var from = range[0].toLocaleDateString("sk-SK"), 
                                 to = range[1] instanceof Date ? range[1].toLocaleDateString("sk-SK"):"súčasnosť";
                             return { from: from, to: to };
                         })
@@ -546,7 +548,8 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
                     return timeScale(d.from) + config.tipCompensation; 
                 }, 
                 "x2" : function(d) { 
-                    return (d.to instanceof Date ? timeScale(d.to):timeScale(util.yearEnd(end.getFullYear()))) - config.tipCompensation; 
+                    var sanitizedEnd = d.to instanceof Date ? d.to:util.yearEnd(end.getFullYear()); //todo: move to sanitizer
+                    return timeScale(sanitizedEnd) - config.tipCompensation; 
                 },
                 "y1" : verticalPosition,
                 "y2" : verticalPosition,
@@ -643,6 +646,8 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
         
         var aggregate, total, barData, computedHeight;
 
+        var color = config.color;
+
         var xScale = d3.scale.linear(),
             canvas = config.container.append("svg").attr("class", "canvas-barchart"),
             barChart = inner(canvas),
@@ -714,7 +719,7 @@ define("znd-graph",["znd-graph-config", "znd-graph-support", "znd-graph-navigati
         renderBarChart = function() {
             var bars = barChart.selectAll(".segment").data(barData);
 
-            bars.exit().remove();
+            bars.exit().transition().style("opacity", 0).remove();
 
             bars.enter()
                 .append("rect").attr("class", "segment");

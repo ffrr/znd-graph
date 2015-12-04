@@ -1,14 +1,40 @@
 "use strict";
-define("znd-graph-filtering", ["lodash", "util",], function(_, util) {
+define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping"], function(_, util, grouping) {
 
-    var filter = function(data, controls, graphs) {
-        var activeSeries = data.series; // keep current state here - beware the grouping clash, will probably have to unite these somehow
+    var filter = function(data, controls, graphs, enableGrouping) {
         
-        var resetData = function(newData) {
-	        _.each(graphs, function(graph) {
-	            graph.reset(newData);
-	        });
-        }, 	
+        var aggregatedSeriesList = [];
+
+        if(enableGrouping) {
+            var preprocessed = grouping.preprocess(data);
+            aggregatedSeriesList = preprocessed[1];            
+            data = preprocessed[0];
+        }
+
+        var activeSeries = _.clone(data.series), summedSeries = grouping.aggregateName;
+        
+        var resetGraphs = function(newData) {
+            _.each(graphs, function(graph) {
+                graph.reset(newData);
+            });
+        },
+        
+        resetAll = function(newData) {
+            resetGraphs(newData);
+            controls.reset(newData);
+        },
+
+        group = function() {
+            activeSeries = _.without.apply(null, _.flatten([[activeSeries], aggregatedSeriesList]));
+            activeSeries.push(summedSeries);
+            return removeFromClone(_.difference(data.series, activeSeries));
+        },
+
+        ungroup = function() {
+            activeSeries = _.without(activeSeries, summedSeries);
+            activeSeries = _.flatten(activeSeries.push(aggregatedSeriesList));
+            return removeFromClone(_.difference(data.series, activeSeries));  
+        },
     
     	getSeriesIndex = function(series) {
     		return data.series.indexOf(series);
@@ -19,41 +45,49 @@ define("znd-graph-filtering", ["lodash", "util",], function(_, util) {
         },
 
         filterSeries = function(series, state) {
-        	if(isActive(series) && !state) {
-        		return removeSeries([series]);
-        	} else if(!isActive(series) && state) {
-        		activeSeries.push(series); // push back into active series
-        		return removeSeries(_.difference(data.series, activeSeries)); // and remove the difference between the initial series and the active series
-        	}
+            var doRemove = isActive(series) && !state, doAdd = !isActive(series) && state;  
+            if(doRemove) return removeSeries(series);
+            if(doAdd) return addSeries(series);
 
-        	// otherwise do jack shit
+            // otherwise do jack shit
+            return data;
 		},
 
-    	removeSeries = function(seriesList) { // always removes from initial clone, kinda misnamed ? todo: refactor
-    		var clone = _.cloneDeep(data), idxs = _.map(seriesList, getSeriesIndex);
-    		
+        addSeries = function(series) {
+            activeSeries.push(series);
+            return removeFromClone(_.difference(data.series, activeSeries));
+        },
 
-    		_.each(idxs, function(idx) { 
+        removeSeries = function(series) {
+            activeSeries = _.without(activeSeries, series);
+            return removeFromClone(_.difference(data.series, activeSeries));
+        },
 
-    			_.pull(activeSeries, seriesList[idx]);
 
-    			_.pullAt(clone.series, idx); 
+    	removeFromClone = function(seriesList) { 
 
-	    		_.each(["y", "timeline"], function(key) {
-	    			clone[key] = _.map(clone[key], function(item) { _.pullAt(item, idx) });
-	    		});
-
-    		});
-
+            var clone = _.cloneDeep(data), idxs = _.map(seriesList, getSeriesIndex);            
+            _.pullAt(clone.series, idxs);
+            _.pullAt(clone.timeline, idxs);
+            clone.y = _.map(clone.y, function(item) { _.pullAt(item, idxs); return item; });
+            
     		return clone;
         };
 
+        resetAll(removeSeries(summedSeries));
+
         controls.onSeriesToggled(function(evt, series, state) {
-        	resetData(filterSeries(series, state));
+            resetGraphs(filterSeries(series, state));
+        });
+
+        controls.onGroupingToggled(function(evt, state) {
+            resetAll(state ? ungroup():group());
         });
         
     };
 
     return filter;
 
-}
+});
+
+
