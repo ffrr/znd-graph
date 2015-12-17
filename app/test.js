@@ -1,6 +1,6 @@
 "use strict";
 
-define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-graph-controls", "znd-graph-filtering", "znd-graph-config"], function(app, _, util, navig, controls, filter, globalConfig) {
+define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-graph-controls", "znd-graph-filtering", "znd-graph-config", "znd-graph-layout"], function(app, _, util, navig, controls, filter, globalConfig, layout) {
     
 
     var containerSelector = "#graph";
@@ -130,10 +130,14 @@ define("test", ["znd-graph", "lodash", "util", "znd-graph-navigation", "znd-grap
 
     navig.widget(navConfig, [gr, tm]);
 
-    $(window).resize(util.onResizeEnd(function() {
-        barChartConfig.width = areaConfig.width = timelineConfig.width = $(containerSelector).width(),
-        gr.reset(points3, areaConfig);
-        tm.reset(points3, timelineConfig);
-        hbc.reset(points3, barChartConfig);
-    }));
+    var pairs = _.zip([hbc, gr, tm], [barChartConfig, areaConfig, timelineConfig]);
+
+    layout.enable($(containerSelector), pairs);
+
+    // $(window).resize(util.onResizeEnd(function() {
+    //     barChartConfig.width = areaConfig.width = timelineConfig.width = $(containerSelector).width(),
+    //     gr.reset(points3, areaConfig);
+    //     tm.reset(points3, timelineConfig);
+    //     hbc.reset(points3, barChartConfig);
+    // }));
 });

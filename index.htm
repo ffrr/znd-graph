@@ -7,6 +7,34 @@
     window.requireTestMode = true;
   </script>
   <script data-main="app/config" src="bower_components/requirejs/require.js"></script>
+  
+  <script type="text/template" class="template" id="navig-desktop">
+    <div class="navigation">        
+        <div class="pan left"><span>&lt;</span></div>
+        <div class="pan right"><span>&gt;</span></div>
+    </div>
+  </script>
+
+
+  <script type="text/template" class="template" id="navig-mobile">
+    <div class="navigation">        
+        <div class="pan left"><span>&lt;</span></div>
+        <div class="pan right"><span>&gt;</span></div>
+    </div>
+  </script>
+
+  <script type="text/template" class="template" id="tooltip">
+    <ul>
+      <% _.each(model, function(itemData) {%>
+      <li>
+        <span class="bullet" style="color: <%= color %>"><span>&#8226;</span></span>        
+        <em class="company"><%= company %></em>
+        <span class="amount"><%= amount %></span>
+      </li>
+      <% }); %>
+    </ul>
+  </script>
+
   <link href="bower_components/c3/c3.css" rel="stylesheet" type="text/css">
   <link href="app/graph.css?bust=8" rel="stylesheet" type="text/css">
   <link href="app/3rd-party/style.css?bust=8" rel="stylesheet" type="text/css">
@@ -21,9 +49,6 @@
       <div class="timeline">
         <div class="d3-tip d3-tip-custom n">Toto je popiska kurzora.</div>
       </div>    
-
-      <div class="pan left"><span>&lt;</span></div>
-      <div class="pan right"><span>&gt;</span></div>
     </div>
 
   </div>

@@ -28,7 +28,12 @@ define("znd-graph-config", ["d3", "lodash"], function(d3, _) {
         	return _export;
         }(),
 
-        spritesPath: "system/svg/sprite.svg",
-        groupingAggregateName: groupingAggregateName
+        spritesPath: "app/3rd-party/svg/sprite.svg",
+        groupingAggregateName: groupingAggregateName,
+        containerSelector: "#graph",
+        
+        horizontalBarChart: 0,
+        barGraph: 1,
+        timeline: 2
     };
 });

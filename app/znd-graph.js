@@ -1,5 +1,5 @@
 "use strict";
-define("znd-graph",["znd-graph-support", "znd-graph-navigation", "lodash", "c3", "d3", "jquery", "util"], function(support, navigation, _, c3, d3, $, util) {
+define("znd-graph",["znd-graph-support", "znd-graph-navigation", "lodash", "c3", "d3", "jquery", "util", "znd-graph-config"], function(support, navigation, _, c3, d3, $, util, globalConfig) {
     
     var tooltipRenderer = support.tooltips, 
         gridRenderer = support.grid, 
@@ -327,7 +327,8 @@ define("znd-graph",["znd-graph-support", "znd-graph-navigation", "lodash", "c3",
         export_ = {
             reset: reset,
             left: left,
-            right: right
+            right: right,
+            type: globalConfig.barGraph
         };
 
         return export_;
@@ -602,9 +603,10 @@ define("znd-graph",["znd-graph-support", "znd-graph-navigation", "lodash", "c3",
         },
 
         renderLegendAxis = function(base, cssClass) {
+            base.selectAll(".label").remove();
             var boundBase = base.selectAll(".label").data(rangedSeries);
             
-            boundBase.exit().remove();
+            //boundBase.exit().remove();
             boundBase.enter().append("text").text(textPosition);
 
             boundBase.attr({"x": 0, "y": verticalPosition, "class": "label"});
@@ -633,12 +635,19 @@ define("znd-graph",["znd-graph-support", "znd-graph-navigation", "lodash", "c3",
 
         repositionTitle = function() {
             title.transition().attr("x", config.width / 2).attr("y", config.padding.top)
+        },
+
+        toggleVisibility = function(toggle) {
+            //canvas.attr("visibility", toggle ? "visible":"hidden");
+            canvas.style("display", toggle ? "block":"none");
         };
 
         return {
             reset: reset,
             left: left,
-            right: right
+            right: right,
+            type: globalConfig.timeline,
+            toggleVisibility: toggleVisibility
         };
     };
 
@@ -760,7 +769,8 @@ define("znd-graph",["znd-graph-support", "znd-graph-navigation", "lodash", "c3",
         };
 
         return {
-            reset: reset
+            reset: reset,
+            type: globalConfig.horizontalBarChart
         };
     };
 

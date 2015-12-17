@@ -5,16 +5,26 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 
 
 	var toggleButton = function(parent, config, isExpander) {
-		var createdButton = parent.append("a");
+		var createdButton = parent.append("li").append("a"),
+			hide = function() {
+				createdButton.style("display", "none");
+			},
+			show = function() {
+				createdButton.style("display", "block");	
+			};
 
 		createdButton
-			.text(config.text)
 			.attr({ "class": "icon", "href": "#", "id": config.id })
 			.append("svg").append("use").attr("xlink:href", globalConfig.spritesPath + "#" + config.spriteName)
+
+		createdButton.insert("span", isExpander ? "svg": null).text(config.text);
 
 		createdButton.on("click", function() {
 			util.bus.fire(events.groupingToggled, [isExpander || false]);
 		});
+
+		createdButton.hide = hide;
+		createdButton.show = show;
 
 		return createdButton;
 	}, 
@@ -67,12 +77,20 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 			expand = toggleButton(config.container, buttonConfig.expand, true),
 			collapse = toggleButton(config.container, buttonConfig.collapse);
 
+		var groupingHandler = function(evt, state) {
+ 			if(state) {
+ 				expand.hide(); collapse.show();
+ 			} else {
+ 				expand.show(); collapse.hide();
+ 			}
+ 		},
 
-		var reset = function(newData) {
-			series = _.clone(newData.series);
+		reset = function(newData) {
+			series = newData.series;
+
+			controls.selectAll("." + klass).remove();
 			var items = controls.selectAll("." + klass).data(series);
 			
-			items.exit().remove();			
 			controlListItem(items.enter());
 		},
 
@@ -82,7 +100,7 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 			return util.bus.on(events.seriesToggled, handler);
 		},
 
-		onGroupingToggled = function(handler) {
+		onGroupingToggled = function(handler) {			
 			return util.bus.on(events.groupingToggled, handler);
 		},
 
@@ -92,6 +110,9 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 			onGroupingToggled: onGroupingToggled
 		};
 
+ 		util.bus.on(events.groupingToggled, groupingHandler);
+
+ 		groupingHandler(null, true);
 		return export_;
 	};
 

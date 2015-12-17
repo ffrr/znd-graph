@@ -1,5 +1,5 @@
 "use strict";
-define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping"], function(_, util, grouping) {
+define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping", "znd-graph-config"], function(_, util, grouping, globalConfig) {
 
     var filter = function(data, controls, graphs, enableGrouping) {
         
@@ -18,21 +18,40 @@ define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping"], function
                 graph.reset(newData);
             });
         },
-        
-        resetAll = function(newData) {
-            resetGraphs(newData);
+
+        applyGrouping = function() {
+            var newData = group();
+            _.each(graphs, function(graph) {
+                if(graph.type != globalConfig.timeline) { // no matching, no fun :/
+                    graph.reset(newData);    
+                } else {
+                    graph.toggleVisibility(false);
+                }
+            });
+            controls.reset(newData);
+        },
+
+        unapplyGrouping = function() {
+            var newData = ungroup();
+            _.each(graphs, function(graph) {
+                graph.reset(newData);   
+                if(graph.type == globalConfig.timeline) { // no matching, no fun :/
+                    graph.toggleVisibility(true);
+                }
+            });
             controls.reset(newData);
         },
 
         group = function() {
-            activeSeries = _.without.apply(null, _.flatten([[activeSeries], aggregatedSeriesList]));
+            activeSeries = _.without.apply(null, _.flatten([[data.series], aggregatedSeriesList]));
             activeSeries.push(summedSeries);
             return removeFromClone(_.difference(data.series, activeSeries));
         },
 
         ungroup = function() {
-            activeSeries = _.without(activeSeries, summedSeries);
-            activeSeries = _.flatten(activeSeries.push(aggregatedSeriesList));
+            activeSeries = _.without(data.series, summedSeries);
+            activeSeries.push(aggregatedSeriesList)
+            activeSeries = _.flatten(activeSeries);
             return removeFromClone(_.difference(data.series, activeSeries));  
         },
     
@@ -74,14 +93,17 @@ define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping"], function
     		return clone;
         };
 
-        resetAll(removeSeries(summedSeries));
+        var initialData = removeSeries(summedSeries)
+        resetGraphs(initialData);
+        controls.reset(initialData);
+
 
         controls.onSeriesToggled(function(evt, series, state) {
             resetGraphs(filterSeries(series, state));
         });
 
         controls.onGroupingToggled(function(evt, state) {
-            resetAll(state ? ungroup():group());
+            state ? unapplyGrouping():applyGrouping();
         });
         
     };
