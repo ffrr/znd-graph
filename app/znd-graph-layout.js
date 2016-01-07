@@ -1,24 +1,23 @@
 define("znd-graph-layout", ["util", "lodash"], function(util, _) {
 
-	var applyDesktopLayout = function(pairs) {
+	var applyDesktopLayout = function(definitions) {
 
 	}, 
-		applyMobileLayout = function(pairs) {
+		applyMobileLayout = function(definitions) {
 
 	}, widths = [[768, applyMobileLayout], [Number.POSITIVE_INFINITY, applyDesktopLayout]],
 
-	enable = function(container, pairs) {
+	enable = function(container, definitions) {
 
 	    $(window).resize(util.onResizeEnd(function() {
-	    	handleResize(container, pairs);
+	    	handleResize(container, definitions);
 	    }));
 
-	}, handleResize = function(container, pairs) {
+	}, handleResize = function(container, definitions) {
     	
-    	_.forEach(pairs, function(pair) { 
-    		var graph = pair[0], config = pair[1];    		
+    	_.forEach(definitions, function(definition) { 		
     		config.width = container.width(); 
-    		graph.reset(null, config);
+    		definition.chart.reset(null, definition.config);
     	});
 
     	// returns the first applicaple layout function and runs it

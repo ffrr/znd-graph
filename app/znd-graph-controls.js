@@ -1,5 +1,5 @@
 "use strict";
-define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquery"], function(d3, _, util, globalConfig, $) {
+define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquery", "znd-graph-colors"], function(d3, _, util, globalConfig, $, colors) {
 
 	var threshold = 1, events = { "seriesToggled": "seriesToggled", "groupingToggled": "groupingToggled" };
 
@@ -52,13 +52,13 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 				.on("change", doToggle),
 			
 			label = itemContent
-				.append("b").style("color", function(item) { return globalConfig.colors.getColor(item); }),
+				.append("b").style("color", function(item) { return colors.getColor(item); }),
 
 			circle = itemContent.append("svg")
 				.attr({ "width": "12", "height": "12", "x": 0, "y": 0})
 				.append("circle")
 					.attr({ "cx": 6, "cy": 6, "r": 6})
-					.attr("fill", function(item) { return globalConfig.colors.getColor(item); });
+					.attr("fill", function(item) { return colors.getColor(item); });
 
 		label.text(function(d) { return d; })					
 

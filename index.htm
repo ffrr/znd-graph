@@ -8,28 +8,28 @@
   </script>
   <script data-main="app/config" src="bower_components/requirejs/require.js"></script>
   
-  <script type="text/template" class="template" id="navig-desktop">
-    <div class="navigation">        
+  <script type="text/template" class="template" id="tpl-navig-desktop">
+    <div class="navigation" id="navig-desktop">        
         <div class="pan left"><span>&lt;</span></div>
         <div class="pan right"><span>&gt;</span></div>
     </div>
   </script>
 
 
-  <script type="text/template" class="template" id="navig-mobile">
-    <div class="navigation">        
+  <script type="text/template" class="template" id="tpl-navig-mobile">
+    <div class="navigation" id="navig-mobile">        
         <div class="pan left"><span>&lt;</span></div>
         <div class="pan right"><span>&gt;</span></div>
     </div>
   </script>
 
-  <script type="text/template" class="template" id="tooltip">
+  <script type="text/template" class="template" id="tpl-tooltip">
     <ul>
       <% _.each(model, function(itemData) {%>
       <li>
-        <span class="bullet" style="color: <%= color %>"><span>&#8226;</span></span>        
-        <em class="company"><%= company %></em>
-        <span class="amount"><%= amount %></span>
+        <span class="bullet" style="color: <%= itemData.color %>"><span>&#8226;</span></span>        
+        <em class="company"><%= itemData.company %></em>
+        <span class="amount"><%= itemData.amount %></span>
       </li>
       <% }); %>
     </ul>
