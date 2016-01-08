@@ -1,33 +1,49 @@
-define("znd-graph-layout", ["util", "lodash"], function(util, _) {
+define("znd-graph-layout", ["util", "lodash", "znd-graph-config"], function(util, _, globals) {
 
-	var applyDesktopLayout = function(definitions) {
+	var widthMap = [[768, globals.layout.MOBILE ], [Number.POSITIVE_INFINITY, globals.layout.DESKTOP]],
 
-	}, 
-		applyMobileLayout = function(definitions) {
+	container, definitions,
 
-	}, widths = [[768, applyMobileLayout], [Number.POSITIVE_INFINITY, applyDesktopLayout]],
-
-	enable = function(container, definitions) {
+	enable = function(container_, definitions_) {
+		container = container_, definitions = definitions_,
 
 	    $(window).resize(util.onResizeEnd(function() {
-	    	handleResize(container, definitions);
+	    	handleResize();
 	    }));
+	}, 
 
-	}, handleResize = function(container, definitions) {
-    	
-    	_.forEach(definitions, function(definition) { 		
-    		config.width = container.width(); 
-    		definition.chart.reset(null, definition.config);
+	chartHandler = function(definition) {
+		definition.config.width = container.width(); 
+		definition.config.layout = currentLayout;
+		definition.component.resize(definition.config);
+	},
+
+	navHandler = function(definition) {
+
+	},
+
+	handleResize = function() {
+
+    	var currentLayout = _.find(widthMap, function(layout) {
+    		return container.width() < layout[0];
+    	})[1];
+
+
+    	_.forEach(definitions, function(definition) {
+    		//navhandler
+    		//charthandler
     	});
 
     	// returns the first applicaple layout function and runs it
-    	_.find(widths, function(layout) {
-    		return container.width() < layout[0];
-    	})[1](pairs);
 	};
 
 	return {
-		enable: enable
+		enable: enable,
+		start: handleResize,
+		handlers: {
+			chart: chartHandler,
+			nav: navHandler
+		}
 	};
 
 });

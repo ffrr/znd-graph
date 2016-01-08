@@ -1,35 +1,14 @@
 "use strict";
 define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], function(_, $, globals) {
 
-    var widget = function(config, state, graphs) {
-        var left, right, currentLayout,
+    var widget = function(initialConfig, state, charts) {
 
-            cont = config.container,
-            tplPrefix = "tpl", navigPrefix = "navig",
-            layout = globals.layout,
-            layouts = _.values(layout),
+        var tabs = { back: null, forward: null },  currentLayout, currentConfig,
+            keyMap = { 37: "back", 39: "forward" },
+            cont = initialConfig.container,
+            tplPrefix = "tpl", navigPrefix = "navig";
 
-            cachedTemplates = _.zipObject(layouts, _.map(layouts, function(layoutType) {
-                return _.template(getTplContent(layoutType));
-            })),
-
-            reset = function(config) {
-                if(currentLayout) getNavig(currentLayout).remove();
-                currentLayout = _.contains(layouts, config.layout) ? config.layout:layout.DESKTOP;
-                
-                cont.prepend(cachedTemplates[config.layout](model));
-
-                left = getNavig(currentLayout).down(".left");
-                right = getNavig(currentLayout).down(".right");
-
-            },
-
-            applyBehavior = function() {
-                left.on("click", function() { _.each(graphs, function(g) { g.left(); }); });
-                right.on("click", function() { _.each(graphs, function(g) { g.right(); }); });                
-            },
-
-            getTplContent = function(layoutType) {
+        var getTplContent = function(layoutType) {
                 return $("#" + [tplPrefix, navigPrefix, layoutType].join("-")).html();
             },
 
@@ -37,14 +16,57 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], functio
                 return $("#" + [navigPrefix, layoutType].join("-"));
             },
 
-            toggle = function(element, t) {
-                element.style("visibility", t ? "visible":"hidden");
+            cachedTemplates = _.zipObject(globals.layouts, _.map(globals.layouts, function(layoutType) {
+                return _.template(getTplContent(layoutType));
+            })),
+
+            reset = function(newConfig) {
+                currentConfig = newConfig || initialConfig;
+                resetLayout();
+                applyBehaviors();
+                evaluateTabVisibility();
             },
 
-            evaluateVisibility = function() {
-                toggle(left, !graph.depleted());
-                toggle(right, !graph.maxed());
+            resetLayout = function() {
+                if(currentLayout) getNavig(currentLayout).remove();
+                currentLayout = _.contains(globals.layouts, currentConfig.layout) ? currentConfig.layout:globals.layout.DESKTOP;
+                cont.prepend(cachedTemplates[currentLayout]());
+            },
+
+            applyBehaviors = function() {
+                _.each(_.keys(tabs), function(dir) {
+                    tabs[dir] = getNavig(currentLayout).children("." + dir).first();
+                    tabs[dir].on("click", function() {
+                        handleShiftingEvent(dir);
+                    });
+                });
+
+                $(document).on("keydown", function(evt) {
+                    var dir = keyMap[evt.keyCode];
+                    if(dir) handleShiftingEvent(dir);
+                });
+            },
+
+            handleShiftingEvent = function(dir) {
+                doShift(dir);
+                evaluateTabVisibility();
+            },
+
+            doShift = function(dir) {
+                var position = state[dir]();                       
+                _.each(charts, function(chart) { chart.pan(position); });
+            },
+
+            evaluateTabVisibility = function() {
+                tabs.back.toggle(!state.depleted());
+                tabs.forward.toggle(!state.maxed());
             };
+
+        return {
+            reset: reset,
+            resize: reset,
+            type: globals.nav
+        };
     };
 
 
@@ -99,7 +121,9 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], functio
             forward: forward,
             first: first,
             last: last,
-            current: current
+            current: current,
+            maxed: maxed,
+            depleted: depleted
         };
     };
 

@@ -31,9 +31,7 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
     };
 
     var navConfig = {
-        container: d3.select(containerSelector),
-        left: d3.select(containerSelector + " .pan.left"),
-        right: d3.select(containerSelector + " .pan.right")
+        container: $(".navigable")
     };
     
     colors.init(data.series);
@@ -51,7 +49,7 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
         chart = chart(config, data);
         chart.reset();
 
-        return { chart: chart, config: config, name: chartName };
+        return { component: chart, config: config, name: chartName };
     }), 'name'),
 
     charts = _.pluck(_.values(chartDefinitions), 'chart');
@@ -69,11 +67,17 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
 
     filter(data, ctrl, charts, true);
 
-    navig.widget(navConfig, navigationState, 
-        _.some(charts, function(chart) { return _.contains(["timeline", "bar"], chart.name)} )
+    var navigation = navig.widget(navConfig, navigationState, 
+        _.filter(charts, function(chart) { 
+            return _.contains(["timeline", "bar"], chart.name)} 
+        )
     );
+    
+    console.log(navigation);
+    navigation.reset();
 
-    layout.enable($(containerSelector), pairs);
+
+    layout.enable($(containerSelector), chartDefinitions);
 
     // $(window).resize(util.onResizeEnd(function() {
     //     barChartConfig.width = areaConfig.width = timelineConfig.width = $(containerSelector).width(),

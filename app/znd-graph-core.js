@@ -1,5 +1,5 @@
 "use strict";
-define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "util", "znd-graph-config", "znd-graph-colors"], function(support, _, c3, d3, $, util, globalConfig, colors) {
+define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "util", "znd-graph-config", "znd-graph-colors"], function(support, _, c3, d3, $, util, globals, colors) {
     
     var tooltipRenderer = support.tooltips, 
         gridRenderer = support.grid, 
@@ -321,9 +321,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         
         export_ = {
             reset: reset,
-            left: left,
-            right: right,
-            type: globalConfig.barGraph
+            pan: pan,
+            type: globals.bar
         };
 
         return export_;
@@ -331,7 +330,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
     var timeline = function(config, data) {
 
-        var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, navig,
+        var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, navig, currentLayout,
             innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 20, axisTextPadding = { left: 10, top: 15 };
 
         //init defaults
@@ -369,6 +368,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         var reset = function(/* newData, newConfig */) {
             data = arguments[0] || data;
             config = arguments[1] || config;
+            currentLayout = config.layout || globals.layout.DESKTOP;
+            
             initDefaults();
             dataWindow = window_(data, [0, config.segments]);
             initialize();
@@ -430,7 +431,9 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
             //renderMasks();
             renderTimeline();
-            renderGrid();
+            
+            renderGrid();    
+            
             renderXAxis();
             renderYAxes();
             
@@ -441,6 +444,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             pan(currentPan !== null && currentPan !== undefined ? currentPan:navig.last());
 
             renderCirclePointer();
+        },
+
+        isDesktop = function() {
+            return currentLayout == globals.layout.DESKTOP;
+        },
+
+        isMobile = function() {
+            return currentLayout == globals.layout.MOBILE;
         },
 
 
@@ -588,6 +599,10 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         },
 
         renderGrid = function() {
+
+            grid.style("visibility", isMobile() ? "hidden":"visible");
+            
+
             gridRenderer(grid)
                 .vert(paddedTimeScale(columnWidth * data.x.length, data))
                 .reset({
@@ -638,9 +653,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
         return {
             reset: reset,
-            left: left,
-            right: right,
-            type: globalConfig.timeline,
+            pan: pan,
+            type: globals.timeline,
             toggleVisibility: toggleVisibility
         };
     };
@@ -763,7 +777,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
         return {
             reset: reset,
-            type: globalConfig.horizontalBarChart
+            type: globals.pie
         };
     };
 
