@@ -1,9 +1,9 @@
 "use strict";
-define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], function(_, $, globals) {
+define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-graph-layout"], function(_, $, globals, layout) {
 
     var widget = function(initialConfig, state, charts) {
 
-        var tabs = { back: null, forward: null },  currentLayout, currentConfig,
+        var tabs = { back: null, forward: null }, currentConfig,
             keyMap = { 37: "back", 39: "forward" },
             cont = initialConfig.container,
             tplPrefix = "tpl", navigPrefix = "navig";
@@ -27,15 +27,29 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], functio
                 evaluateTabVisibility();
             },
 
+            resetState = function() {
+                if(layout.isMobile()) state.changeWindowWidth(1);
+                else state.changeWindowWidth(3);
+            },
+
             resetLayout = function() {
-                if(currentLayout) getNavig(currentLayout).remove();
-                currentLayout = _.contains(globals.layouts, currentConfig.layout) ? currentConfig.layout:globals.layout.DESKTOP;
-                cont.prepend(cachedTemplates[currentLayout]());
+                state.applyLayout();
+
+               _.each(charts, function(chart) { 
+                    if(chart.pan) chart.pan(state.first()); 
+                });
+
+
+                var currentNavig = getNavig(layout.getCurrent());
+                if(currentNavig) currentNavig.remove();
+
+                cont.prepend(cachedTemplates[layout.getCurrent()]());
+
             },
 
             applyBehaviors = function() {
                 _.each(_.keys(tabs), function(dir) {
-                    tabs[dir] = getNavig(currentLayout).children("." + dir).first();
+                    tabs[dir] = getNavig(layout.getCurrent()).children("." + dir).first();
                     tabs[dir].on("click", function() {
                         handleShiftingEvent(dir);
                     });
@@ -53,9 +67,12 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], functio
             },
 
             doShift = function(dir) {
-                var position = state[dir]();                       
-                _.each(charts, function(chart) { chart.pan(position); });
-            },
+                var position = state[dir]();
+
+                _.each(charts, function(chart) { 
+                    if(chart.pan) chart.pan(position); 
+                });
+            },         
 
             evaluateTabVisibility = function() {
                 tabs.back.toggle(!state.depleted());
@@ -70,9 +87,9 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], functio
     };
 
 
-    var stateSupport = function(full, windowWidth, step) {
+    var stateSupport = function(full, initialWindowWidth, step) {
 
-        var cursor = 0, used = false, windowWidth = (windowWidth != null || windowWidth != undefined) ? windowWidth:3, 
+        var cursor = 0, used = false, windowWidth = initialWindowWidth,
             
             back = function() {
                 if(!depleted())  {
@@ -114,6 +131,11 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], functio
             maxed = function() {
                 var outerRange = cursor * step + windowWidth;
                 return outerRange >= full;
+            },
+
+            applyLayout = function() {
+                if(layout.isMobile()) windowWidth = 1;
+                else windowWidth = initialWindowWidth;
             };
 
         return {
@@ -123,7 +145,8 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config"], functio
             last: last,
             current: current,
             maxed: maxed,
-            depleted: depleted
+            depleted: depleted,
+            applyLayout: applyLayout
         };
     };
 

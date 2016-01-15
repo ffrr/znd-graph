@@ -7,9 +7,9 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
         data = testdata, 
         segments = 5, 
         initialWidth = $(containerSelector).width() - 15;
-
-    var navigationState = navig.state(data.x.length, segments, 1);
     
+    var navigationState = navig.state(data.x.length, segments, 1);
+
     var chartConfigs = {
     
         pie: {
@@ -36,7 +36,7 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
     
     colors.init(data.series);
 
-    var chartDefinitions = _.indexBy(_.map(app, function(chart, chartName) {
+    var componentDefinitions = _.indexBy(_.map(app, function(chart, chartName) {
 
         var config = chartConfigs[chartName];
 
@@ -52,37 +52,21 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
         return { component: chart, config: config, name: chartName };
     }), 'name'),
 
-    charts = _.pluck(_.values(chartDefinitions), 'chart');
-
-    // var hbc = app.horizontalBarChart(barChartConfig, data);
-    // hbc.reset();
-
-    // var gr = app.barGraph(areaConfig, data/*window_(points, [0,4])*/);
-    // gr.reset();
-    
-    // var tm = app.timeline(timelineConfig, data);
-    // tm.reset();
+    charts = _.pluck(_.values(componentDefinitions), 'component');
 
     var ctrl = controls({ container: d3.select("#pie") });
 
-    filter(data, ctrl, charts, true);
+    filter(data, ctrl, charts, true); 
 
-    var navigation = navig.widget(navConfig, navigationState, 
-        _.filter(charts, function(chart) { 
-            return _.contains(["timeline", "bar"], chart.name)} 
-        )
-    );
-    
-    console.log(navigation);
+    var navigation = navig.widget(navConfig, navigationState, charts);    
+
+
+    componentDefinitions["nav"] = {
+        component: navigation,
+        config: navConfig,
+        name: "nav"
+    };
+
+    layout.enable($(containerSelector), componentDefinitions);
     navigation.reset();
-
-
-    layout.enable($(containerSelector), chartDefinitions);
-
-    // $(window).resize(util.onResizeEnd(function() {
-    //     barChartConfig.width = areaConfig.width = timelineConfig.width = $(containerSelector).width(),
-    //     gr.reset(points3, areaConfig);
-    //     tm.reset(points3, timelineConfig);
-    //     hbc.reset(points3, barChartConfig);
-    // }));
 });

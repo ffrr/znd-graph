@@ -1,5 +1,5 @@
 "use strict";
-define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "util", "znd-graph-config", "znd-graph-colors"], function(support, _, c3, d3, $, util, globals, colors) {
+define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "util", "znd-graph-config", "znd-graph-colors", "znd-graph-layout"], function(support, _, c3, d3, $, util, globals, colors, layout) {
     
     var tooltipRenderer = support.tooltips, 
         gridRenderer = support.grid, 
@@ -330,7 +330,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
     var timeline = function(config, data) {
 
-        var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, navig, currentLayout,
+        var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, headerSeries, navig,
             innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 20, axisTextPadding = { left: 10, top: 15 };
 
         //init defaults
@@ -338,11 +338,19 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         var id = util.randomId();
 
         var timeScale = d3.time.scale(),
+            companyScale = d3.scale.ordinal(),
             positionScale = d3.scale.ordinal();
 
         var rangeKey = function(item) { return item.series + item.position; },
-            verticalPosition = function(d) { return positionScale(rangeKey(d)) + 5; },
-            textPosition = function(d) { return d.position };
+            verticalPosition = function(d) {
+                var ret = innerY + d.totalIndex * config.itemHeight + d.seriesIndex * config.legendItemHeight;
+                return ret;
+            }, headerPosition = function(d) {
+                var itemSum = _.reduce(_.range(0, d.seriesIndex), function(total, index) {
+                    return total + data.timeline[index].length;
+                }, 0);
+                return innerY + (itemSum * config.itemHeight) + d.seriesIndex * config.legendItemHeight - config.legendItemHeight;
+            };
 
         var canvas = config.container.append("svg").attr("class", "canvas-timeline"),
             clip = canvas.append("clipPath").attr("id", "clip-"+ id).append("rect"),
@@ -368,11 +376,20 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         var reset = function(/* newData, newConfig */) {
             data = arguments[0] || data;
             config = arguments[1] || config;
-            currentLayout = config.layout || globals.layout.DESKTOP;
             
             initDefaults();
-            dataWindow = window_(data, [0, config.segments]);
+            dataWindow = window_(data, [0, getSegmentAmount()]);
             initialize();
+        },
+
+        getSegmentAmount = function() {
+            if(layout.isMobile()) return 1;
+            return config.segments;
+        },
+
+        getCompensationRatio = function() {
+            if(layout.isMobile()) return 0;
+            return 0.5;
         },
 
         initDefaults = function() {
@@ -383,7 +400,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 itemHeight: 35,
                 segments: 7,
                 tipCompensation: 4,
-                labelPadding: 15
+                labelPadding: 15,
+                legendItemHeight: 50
             });
 
             _.defaults(config.padding, {
@@ -404,13 +422,13 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         },
 
         pan = function(position) {
-            var compensation = position > 0 ? columnWidth * 0.5:0;
+            var compensation = position > 0 ? columnWidth * getCompensationRatio():0;
             pos.pan(content, config.margin, - (position * columnWidth + compensation));
             currentPan = position;
         },
 
         initialize = function() {
-            columnWidth = config.width / (config.segments - 0.5);
+            columnWidth = config.width / (getSegmentAmount() - getCompensationRatio());
             start = _.first(data.x); end = _.last(data.x);
             outerWidth = columnWidth * (data.x.length - 1);         
             
@@ -422,10 +440,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             timeScale
                 .domain([start, end])
                 .range([0, outerWidth]);
+
+            companyScale
+                .domain(data.series)
+                .rangePoints([ innerY, innerHeight + innerY]);
             
-            positionScale
-                .domain(positionalSeries.map(rangeKey))
-                .rangePoints([ innerY, innerHeight + innerY ])
+            // positionScale
+            //     .domain(positionalSeries.map(rangeKey))
+            //     .rangePoints([ innerY, innerHeight + innerY ])
 
             //color.domain(data.series);
 
@@ -446,54 +468,75 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             renderCirclePointer();
         },
 
-        isDesktop = function() {
-            return currentLayout == globals.layout.DESKTOP;
-        },
-
-        isMobile = function() {
-            return currentLayout == globals.layout.MOBILE;
-        },
-
-
-        generateTooltipDescription = function(segment) {
+        renderTooltipTemplate = function(model) {
 
             var company = "<em class=\"company\"><%= company %></em>",
                 position = "<span class=\"position\"><%= position %></span>",
-                ranges = "<span class=\"ranges\"><%= _.map(ranges, function(range) { return range.from + ' - ' + range.to; }).join(', ') %></span>",
-                tpl = _.template(["<div class=\"tooltip-timeline\">", company, position, ranges, "</div>"].join("")),                   
-                model = {
-                        company: segment.series,
-                        position: segment.position,
-                        ranges: _.map(segment.ranges, function(range) {
-                            var from = range[0].toLocaleDateString("sk-SK"), 
-                                to = range[1] instanceof Date ? range[1].toLocaleDateString("sk-SK"):"súčasnosť";
-                            return { from: from, to: to };
-                        })
-                };
+                ranges = "<span class=\"ranges\"><%= formatDateRanges(ranges) %></span>",
+                tpl = _.template(["<div class=\"tooltip-timeline\">", company, position, ranges, "</div>"].join(""));
+
             return tpl(model);
+        },
+
+        formatDateRanges = function(ranges) {
+            return _.map(ranges, formatDateRange).join(', '); 
+        },
+
+        formatDateRange = function(range) {
+            return formatDate(range[0]) + ' - ' + formatDate(range[1]);
+        },
+
+        getTooltipModel = function(segment) {
+            return {
+                company: segment.series,
+                position: segment.position,
+                ranges: segment.ranges,
+                formatDateRanges: formatDateRanges 
+            };
+        },
+
+        formatDate = function(date) {
+            return date instanceof Date ? date.toLocaleDateString("sk-SK"):"súčasnosť";
         },
 
         denormalizeSeries = function() {
 
             //denormalize series by position
+            var total = 0;
             positionalSeries = _.flatten(data.timeline.map(function(item, seriesIndex) {
-                return item.map(function(segment) { 
-                    var ret = _.assign(segment, { series: data.series[seriesIndex] });
-                    return _.assign(ret, { tooltipDescription: generateTooltipDescription(ret) });
+                return item.map(function(segment, index) { 
+                    var ret = _.assign(segment, { series: data.series[seriesIndex] }), model = getTooltipModel(ret);
+                    return _.assign(ret, { tooltipDescription: renderTooltipTemplate(model), 
+                        seriesIndex: seriesIndex, index: index, seriesLength: item.length, totalIndex: total++, tooltipModel: model });
                 })
             }));
+
 
             //denormalize series by range 
             rangedSeries = _.flatten(positionalSeries.map(function(item) {
                 // inject data to range object
-                return item.ranges.map(function(range) { return { from: range[0], to: range[1], series: item.series, position: item.position }; });
+                return item.ranges.map(function(range) { 
+                    return _.extend(_.pick(item, ['seriesIndex', 'seriesLength', 'index', 'series', 'totalIndex']), { from: range[0], to: range[1]}); 
+                });
             }));
+
+            var aggregates = util.aggregates(data), total = util.totals(data);
+
+            headerSeries = _.map(data.series, function(series, index) {
+                return {
+                    series: series,
+                    aggregate: aggregates[index],
+                    percentage: Math.round((aggregates[index] / total) * 100),
+                    size: data.y[index].length,
+                    seriesIndex: index
+                };
+            });
         },
 
         computeHeight = function() {
             var p = config.padding;
-            innerHeight = positionalSeries.length * config.itemHeight; 
-            innerY = config.padding.top + titleHeight + titleToTimelinePadding;
+            innerHeight = positionalSeries.length * config.itemHeight + (headerSeries.length - 1) * config.legendItemHeight; 
+            innerY = config.padding.top + titleHeight + titleToTimelinePadding + config.legendItemHeight;
             config.height = innerY + innerHeight + p.bottom + bottomAxis.height();
             
         },
@@ -503,10 +546,36 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         },
 
         renderYAxes = function() {
+            var positionRenderer = function(d) { return d.position },
+                dateRangeRenderer = function(d) {
+                    return formatDateRanges(d.ranges);
+                };
+
             leftAxis.attr("transform", "translate(" + axisTextPadding.left + ",-" + config.labelPadding + ")");
             rightAxis.attr("transform", "translate(" + (config.width - axisTextPadding.left) + ",-" + config.labelPadding + ")");
             
-            renderLegendAxis(leftAxis); renderLegendAxis(rightAxis); 
+            renderLegendAxis(leftAxis, positionRenderer); renderLegendAxis(rightAxis, dateRangeRenderer); 
+
+            renderLegendHeaders();
+        },
+
+        renderLegendAxis = function(base, textRenderer) {
+            base.selectAll(".label").remove();
+            
+            var boundBase = base.selectAll(".label").data(positionalSeries);
+            
+            //boundBase.exit().remove();
+            boundBase.enter().append("text").text(textRenderer);
+
+            boundBase.attr({"x": 0, "y": verticalPosition, "class": "label"});
+        },
+
+        renderLegendHeaders = function() {
+            
+            var headers = legend.selectAll(".legend-headers").data(headerSeries);
+            headers.enter().append("text").text(function(d) { return d.series; });
+            headers.attr({"x": axisTextPadding.left, "y": headerPosition });
+
         },
 
         renderBackgroundBars = function(container) {
@@ -541,7 +610,6 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         },
 
         renderTimeline = function() {
-
             renderBackgroundBars(timeline);
             var front = timeline.selectAll(".bar").data(rangedSeries);
 
@@ -600,7 +668,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
         renderGrid = function() {
 
-            grid.style("visibility", isMobile() ? "hidden":"visible");
+            grid.style("visibility", layout.isMobile() ? "hidden":"visible");
             
 
             gridRenderer(grid)
@@ -609,16 +677,6 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                     width: columnWidth * data.x.length,
                     height: config.height
             });
-        },
-
-        renderLegendAxis = function(base, cssClass) {
-            base.selectAll(".label").remove();
-            var boundBase = base.selectAll(".label").data(rangedSeries);
-            
-            //boundBase.exit().remove();
-            boundBase.enter().append("text").text(textPosition);
-
-            boundBase.attr({"x": 0, "y": verticalPosition, "class": "label"});
         },
         
         sizing = function() {
@@ -781,11 +839,34 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         };
     };
 
+    // resizability mixin
+    var resizable = function(module) {
+        return function() {
+            var obj = module.apply(null, arguments);
+            return _.assign(obj, {
+                resize: function(newConfig) {
+                    obj.reset(null, newConfig);
+                }
+            });
+        };
+    };
 
-    return {
+    var resizable = {
+        resize: function(newConfig) {
+            this.reset(null, newConfig);
+        }
+    };
+
+    var export_ = {
         bar: barGraph,
         timeline: timeline,
         pie: horizontalBarChart
     };
+
+    _.each(export_, function(module, name) {
+        export_[name] = util.mixin(module, resizable);
+    });
+
+    return export_;
 
 });

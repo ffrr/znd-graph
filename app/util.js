@@ -37,7 +37,6 @@ define("util",["lodash", "jquery"], function(_, $) {
         fire: _.bind($(document).trigger, $(document))
     };
 
-
     var aggregates = function(data)  {
         return _.zip.apply(null, data.y).map(function(arr) { //get the aggregated sum of each series
             return _.reduce(arr, export_.sum);
@@ -46,7 +45,17 @@ define("util",["lodash", "jquery"], function(_, $) {
         return _.reduce(aggregates(data), export_.sum);
     };
 
-    _.assign(export_, { aggregates: aggregates, totals: totals, bus: bus })
+    var mixin = function(module, mixin) {
+        return function() {
+            var exp = module.apply(null, arguments);
+            _.each(mixin, function(property, key) {
+                if(_.isFunction(property)) _.bind(property, exp);
+            });
+            return _.assign(exp, mixin);
+        };
+    };
+
+    _.assign(export_, { aggregates: aggregates, totals: totals, bus: bus, mixin: mixin})
 
     return export_;
 });

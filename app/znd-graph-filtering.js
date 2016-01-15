@@ -93,8 +93,10 @@ define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping", "znd-grap
     		return clone;
         };
 
-        var initialData = removeSeries(summedSeries)
-        resetGraphs(initialData);
+        var initialData = removeSeries(summedSeries);
+        
+        //resetGraphs(initialData);
+        
         controls.reset(initialData);
 
 

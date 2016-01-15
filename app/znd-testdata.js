@@ -10,7 +10,7 @@ define("znd-testdata", ["util"], function(util) {
             { position: "Štatutár", ranges: [["2005-03-01", "2008-02-01"]] },
             { position: "Zástupca riaditeľa", ranges: [["2008-08-08", "2009-05-02"]] },
         ],[
-            { position: "Štatutár", ranges: [["2005-02-03", "2007-09-27"], ["2009-12-12", "2010-01-01"]] },
+            { position: "Štatutárka", ranges: [["2005-02-03", "2007-09-27"], ["2009-12-12", "2010-01-01"]] },
             { position: "Zástupca riaditeľa", ranges: [["2005-06-01", "2008-11-18"]] }
         ],[
             { position: "Kotolník", ranges: [["2005-04-04", null]] },
