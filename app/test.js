@@ -6,7 +6,7 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
     var containerSelector = "#graph", 
         data = testdata, 
         segments = 5, 
-        initialWidth = $(containerSelector).width() - 15;
+        initialWidth = $(containerSelector).width() - 15, charts;
     
     var navigationState = navig.state(data.x.length, segments, 1);
 
@@ -47,26 +47,32 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
         });
 
         chart = chart(config, data);
-        chart.reset();
 
         return { component: chart, config: config, name: chartName };
     }), 'name'),
 
     charts = _.pluck(_.values(componentDefinitions), 'component');
 
+    // init controls
     var ctrl = controls({ container: d3.select("#pie") });
-
+    
+    //init filtering
     filter(data, ctrl, charts, true); 
 
+    //init navigation
     var navigation = navig.widget(navConfig, navigationState, charts);    
 
-
+    // add navi to components
     componentDefinitions["nav"] = {
         component: navigation,
         config: navConfig,
         name: "nav"
     };
 
+    // start the layout watch and kick it off
+    
     layout.enable($(containerSelector), componentDefinitions);
-    navigation.reset();
+    layout.start();    
+    
+
 });

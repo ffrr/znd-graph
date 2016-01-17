@@ -34,8 +34,6 @@
   top: -4px;
 }
 
-
-
 .znd-graph .domain {
   display: none;
 }
@@ -83,6 +81,7 @@
 .znd-graph .labelgroup-left .label {
   text-anchor: start;
 }
+
 
 .znd-graph .labelgroup-right .label {
   text-anchor: end;

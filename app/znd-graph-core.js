@@ -331,7 +331,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
     var timeline = function(config, data) {
 
         var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, headerSeries, navig,
-            innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 20, axisTextPadding = { left: 10, top: 15 };
+            innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 50, axisTextPadding = { left: 10, top: 15 };
 
         //init defaults
 
@@ -350,7 +350,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                     return total + data.timeline[index].length;
                 }, 0);
                 return innerY + (itemSum * config.itemHeight) + d.seriesIndex * config.legendItemHeight - config.legendItemHeight;
-            };
+            }, linePosition = function(d) { return -$(this).siblings("g.headers-text").find("text").height(); }
 
         var canvas = config.container.append("svg").attr("class", "canvas-timeline"),
             clip = canvas.append("clipPath").attr("id", "clip-"+ id).append("rect"),
@@ -538,11 +538,10 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             innerHeight = positionalSeries.length * config.itemHeight + (headerSeries.length - 1) * config.legendItemHeight; 
             innerY = config.padding.top + titleHeight + titleToTimelinePadding + config.legendItemHeight;
             config.height = innerY + innerHeight + p.bottom + bottomAxis.height();
-            
         },
 
         renderXAxis = function() {
-            bottomAxis.reset(data, timeScale, { x: columnWidth/2, y: config.height - bottomAxis.height() }, null);
+            bottomAxis.reset(data, timeScale, { x: columnWidth/2, y: config.height - bottomAxis.height() * 1.2 }, null);
         },
 
         renderYAxes = function() {
@@ -571,10 +570,41 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         },
 
         renderLegendHeaders = function() {
+            legend.selectAll(".legend-headers").remove();
+
+            var headers = legend.selectAll(".legend-headers")
+                .data(headerSeries).enter().append("g");
+
+            headers
+                .attr("class", "legend-headers")
+                .attr("transform", function(d) { return "translate(0, " + headerPosition(d) + ")" });
+
+            var texts = headers.append("g").attr("class","headers-text"),
+                
+                left = texts.append("text")
+                    .attr("x", axisTextPadding.left)
+                    .style("font-weight", "bold")
+                    .attr("fill", function(d) { return color(d.series) })
+                    .text(function(d) { return d.series; })
             
-            var headers = legend.selectAll(".legend-headers").data(headerSeries);
-            headers.enter().append("text").text(function(d) { return d.series; });
-            headers.attr({"x": axisTextPadding.left, "y": headerPosition });
+                right = texts.append("text")                    
+                        .style({"text-anchor": "end"})
+                        .attr({ "x": config.width - axisTextPadding.left, "class": "percentage"});
+
+            right.append("tspan")
+                .style("font-weight", "bold")
+                .attr("fill", function(d) { return color(d.series); })
+                .text(function(d) { return d.percentage + " % "; });
+
+            right.append("tspan")
+                .attr("fill", "white")
+                .text(function(d) { return d.aggregate + " €"; });
+
+            texts.attr("transform", "translate(0, 10)");
+
+            headers
+                .append("line")
+                    .attr({ "x1": 0, "y1": linePosition, "x2": config.width, "y2": linePosition});
 
         },
 

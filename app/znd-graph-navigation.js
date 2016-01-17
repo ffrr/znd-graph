@@ -39,9 +39,10 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
                     if(chart.pan) chart.pan(state.first()); 
                 });
 
-
                 var currentNavig = getNavig(layout.getCurrent());
-                if(currentNavig) currentNavig.remove();
+                if(currentNavig) {
+                    currentNavig.remove();
+                }
 
                 cont.prepend(cachedTemplates[layout.getCurrent()]());
 
