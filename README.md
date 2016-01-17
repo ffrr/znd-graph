@@ -1,6 +1,8 @@
-# znd graph
+# znd-graph
 
-zoomable c3-based graph
+A graph component for the upcoming update of znd, made in d3.js.
+
+A scaffolded README follows, update TBD.
 
 ## Getting Started
 
