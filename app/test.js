@@ -25,7 +25,7 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
         }, 
 
         timeline: {
-            itemHeight: 40,
+            itemHeight: 50,
             container: d3.select(containerSelector + " .timeline")
         }
     };

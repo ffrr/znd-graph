@@ -6,7 +6,7 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
         var tabs = { back: null, forward: null }, currentConfig,
             keyMap = { 37: "back", 39: "forward" },
             cont = initialConfig.container,
-            tplPrefix = "tpl", navigPrefix = "navig";
+            tplPrefix = "tpl", navigPrefix = "navig", prevNavig;
 
         var getTplContent = function(layoutType) {
                 return $("#" + [tplPrefix, navigPrefix, layoutType].join("-")).html();
@@ -39,13 +39,12 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
                     if(chart.pan) chart.pan(state.first()); 
                 });
 
-                var currentNavig = getNavig(layout.getCurrent());
-                if(currentNavig) {
-                    currentNavig.remove();
+                if(prevNavig) {
+                    prevNavig.remove();
                 }
 
                 cont.prepend(cachedTemplates[layout.getCurrent()]());
-
+                prevNavig = getNavig(layout.getCurrent());
             },
 
             applyBehaviors = function() {

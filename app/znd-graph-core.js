@@ -331,7 +331,9 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
     var timeline = function(config, data) {
 
         var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, headerSeries, navig,
-            innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 50, axisTextPadding = { left: 10, top: 15 };
+            innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 50, axisTextPadding = { left: 10, top: 15 },
+
+            segmentAmount, compensationRatio, legendItemHeight, itemHeight;
 
         //init defaults
 
@@ -343,13 +345,13 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
         var rangeKey = function(item) { return item.series + item.position; },
             verticalPosition = function(d) {
-                var ret = innerY + d.totalIndex * config.itemHeight + d.seriesIndex * config.legendItemHeight;
+                var ret = innerY + d.totalIndex * itemHeight + d.seriesIndex * legendItemHeight;
                 return ret;
             }, headerPosition = function(d) {
                 var itemSum = _.reduce(_.range(0, d.seriesIndex), function(total, index) {
                     return total + data.timeline[index].length;
                 }, 0);
-                return innerY + (itemSum * config.itemHeight) + d.seriesIndex * config.legendItemHeight - config.legendItemHeight;
+                return innerY + (itemSum * itemHeight) + d.seriesIndex * legendItemHeight - legendItemHeight;
             }, linePosition = function(d) { return -$(this).siblings("g.headers-text").find("text").height(); }
 
         var canvas = config.container.append("svg").attr("class", "canvas-timeline"),
@@ -377,27 +379,35 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             data = arguments[0] || data;
             config = arguments[1] || config;
             
+            
             initDefaults();
-            dataWindow = window_(data, [0, getSegmentAmount()]);
+            applyLayout();
+            dataWindow = window_(data, [0, segmentAmount]);
             initialize();
         },
 
-        getSegmentAmount = function() {
-            if(layout.isMobile()) return 1;
-            return config.segments;
-        },
+        applyLayout = function() {
+            if(layout.isMobile()) {
+                segmentAmount = 1; 
+                compensationRatio = 0; 
+                legendItemHeight = config.legendItemHeight;
+                itemHeight = config.itemHeight * 0.8;
+            }
 
-        getCompensationRatio = function() {
-            if(layout.isMobile()) return 0;
-            return 0.5;
-        },
+            if (layout.isDesktop()) {
+                segmentAmount = config.segments; 
+                compensationRatio = 0.5; 
+                legendItemHeight = 0;
+                itemHeight = config.itemHeight;
+            }
+        },        
 
         initDefaults = function() {
 
             _.defaults(config, {
                 padding: {},
                 margin: {},
-                itemHeight: 35,
+                itemHeight: 50,
                 segments: 7,
                 tipCompensation: 4,
                 labelPadding: 15,
@@ -422,13 +432,13 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         },
 
         pan = function(position) {
-            var compensation = position > 0 ? columnWidth * getCompensationRatio():0;
+            var compensation = position > 0 ? columnWidth * compensationRatio:0;
             pos.pan(content, config.margin, - (position * columnWidth + compensation));
             currentPan = position;
         },
 
         initialize = function() {
-            columnWidth = config.width / (getSegmentAmount() - getCompensationRatio());
+            columnWidth = config.width / (segmentAmount - compensationRatio);
             start = _.first(data.x); end = _.last(data.x);
             outerWidth = columnWidth * (data.x.length - 1);         
             
@@ -535,13 +545,13 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
         computeHeight = function() {
             var p = config.padding;
-            innerHeight = positionalSeries.length * config.itemHeight + (headerSeries.length - 1) * config.legendItemHeight; 
-            innerY = config.padding.top + titleHeight + titleToTimelinePadding + config.legendItemHeight;
+            innerHeight = (positionalSeries.length - 1)* itemHeight + (headerSeries.length - 1) * legendItemHeight; 
+            innerY = config.padding.top + titleHeight + titleToTimelinePadding + legendItemHeight;
             config.height = innerY + innerHeight + p.bottom + bottomAxis.height();
         },
 
         renderXAxis = function() {
-            bottomAxis.reset(data, timeScale, { x: columnWidth/2, y: config.height - bottomAxis.height() * 1.2 }, null);
+            bottomAxis.reset(data, timeScale, { x: columnWidth/2, y: config.height - bottomAxis.height() }, null);
         },
 
         renderYAxes = function() {
@@ -553,7 +563,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             leftAxis.attr("transform", "translate(" + axisTextPadding.left + ",-" + config.labelPadding + ")");
             rightAxis.attr("transform", "translate(" + (config.width - axisTextPadding.left) + ",-" + config.labelPadding + ")");
             
-            renderLegendAxis(leftAxis, positionRenderer); renderLegendAxis(rightAxis, dateRangeRenderer); 
+            renderLegendAxis(leftAxis, positionRenderer); renderLegendAxis(rightAxis, layout.isMobile() ? dateRangeRenderer:positionRenderer); 
 
             renderLegendHeaders();
         },
@@ -572,40 +582,41 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         renderLegendHeaders = function() {
             legend.selectAll(".legend-headers").remove();
 
-            var headers = legend.selectAll(".legend-headers")
-                .data(headerSeries).enter().append("g");
+            if (layout.isMobile()) {
+                var headers = legend.selectAll(".legend-headers")
+                    .data(headerSeries).enter().append("g");
 
-            headers
-                .attr("class", "legend-headers")
-                .attr("transform", function(d) { return "translate(0, " + headerPosition(d) + ")" });
+                headers
+                    .attr("class", "legend-headers")
+                    .attr("transform", function(d) { return "translate(0, " + headerPosition(d) + ")" });
 
-            var texts = headers.append("g").attr("class","headers-text"),
+                var texts = headers.append("g").attr("class","headers-text"),
+                    
+                    left = texts.append("text")
+                        .attr("x", axisTextPadding.left)
+                        .style("font-weight", "bold")
+                        .attr("fill", function(d) { return color(d.series) })
+                        .text(function(d) { return d.series; })
                 
-                left = texts.append("text")
-                    .attr("x", axisTextPadding.left)
+                    right = texts.append("text")                    
+                            .style({"text-anchor": "end"})
+                            .attr({ "x": config.width - axisTextPadding.left, "class": "percentage"});
+
+                right.append("tspan")
                     .style("font-weight", "bold")
-                    .attr("fill", function(d) { return color(d.series) })
-                    .text(function(d) { return d.series; })
-            
-                right = texts.append("text")                    
-                        .style({"text-anchor": "end"})
-                        .attr({ "x": config.width - axisTextPadding.left, "class": "percentage"});
+                    .attr("fill", function(d) { return color(d.series); })
+                    .text(function(d) { return d.percentage + " % "; });
 
-            right.append("tspan")
-                .style("font-weight", "bold")
-                .attr("fill", function(d) { return color(d.series); })
-                .text(function(d) { return d.percentage + " % "; });
+                right.append("tspan")
+                    .attr("fill", "white")
+                    .text(function(d) { return d.aggregate + " €"; });
 
-            right.append("tspan")
-                .attr("fill", "white")
-                .text(function(d) { return d.aggregate + " €"; });
+                texts.attr("transform", "translate(0, 10)");
 
-            texts.attr("transform", "translate(0, 10)");
-
-            headers
-                .append("line")
-                    .attr({ "x1": 0, "y1": linePosition, "x2": config.width, "y2": linePosition});
-
+                headers
+                    .append("line")
+                        .attr({ "x1": 0, "y1": linePosition, "x2": config.width, "y2": linePosition});
+            }
         },
 
         renderBackgroundBars = function(container) {
