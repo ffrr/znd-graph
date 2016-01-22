@@ -113,8 +113,17 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         canvas.attr("clip-path", "url(#clip-"+ id +")");
 
         var reset = function(/* newData, newConfig */) {            
+
             config = arguments[1] || config;
             data = arguments[0] || data;
+            
+            if(layout.isMobile()) {
+                $(canvas.node()).hide(); // should stop here, but fails 
+                //return;
+            }
+
+            if(layout.isDesktop()) $(canvas.node()).show();
+            
             initDefaults();
             dataWindow = window_(data, [0, config.segments]);
             initialize();
@@ -333,7 +342,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, headerSeries, navig,
             innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 50, axisTextPadding = { left: 10, top: 15 },
 
-            segmentAmount, compensationRatio, legendItemHeight, itemHeight;
+            segmentAmount, compensationRatio, legendItemHeight, itemHeight, yearlyTotals;
 
         //init defaults
 
@@ -435,6 +444,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             var compensation = position > 0 ? columnWidth * compensationRatio:0;
             pos.pan(content, config.margin, - (position * columnWidth + compensation));
             currentPan = position;
+            onPan(position);
         },
 
         initialize = function() {
@@ -532,12 +542,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
             var aggregates = util.aggregates(data), total = util.totals(data);
 
+            yearlyTotals = _.map(data.y, function(series) { return _.reduce(series, util.sum); });
+
             headerSeries = _.map(data.series, function(series, index) {
                 return {
                     series: series,
-                    aggregate: aggregates[index],
-                    percentage: Math.round((aggregates[index] / total) * 100),
-                    size: data.y[index].length,
+                    // aggregate: aggregates[index],
+                    // percentage: Math.round((aggregates[index] / total) * 100),
+                    // size: data.y[index].length,
                     seriesIndex: index
                 };
             });
@@ -579,6 +591,16 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             boundBase.attr({"x": 0, "y": verticalPosition, "class": "label"});
         },
 
+        onPan = function(position) {
+            legend.selectAll("tspan.percentage").text(function(d) {
+                return Math.round((data.y[position][d.seriesIndex] / yearlyTotals[position]) * 100) + " %";
+            });
+
+            legend.selectAll("tspan.sum").text(function(d) {
+                return data.y[position][d.seriesIndex] + " €";
+            });
+        },
+
         renderLegendHeaders = function() {
             legend.selectAll(".legend-headers").remove();
 
@@ -593,8 +615,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 var texts = headers.append("g").attr("class","headers-text"),
                     
                     left = texts.append("text")
-                        .attr("x", axisTextPadding.left)
                         .style("font-weight", "bold")
+                        .attr("x", axisTextPadding.left)
                         .attr("fill", function(d) { return color(d.series) })
                         .text(function(d) { return d.series; })
                 
@@ -602,14 +624,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                             .style({"text-anchor": "end"})
                             .attr({ "x": config.width - axisTextPadding.left, "class": "percentage"});
 
-                right.append("tspan")
+                right.append("tspan").attr("class", "percentage")
                     .style("font-weight", "bold")
-                    .attr("fill", function(d) { return color(d.series); })
-                    .text(function(d) { return d.percentage + " % "; });
+                    .style("padding-right", "100")
+                    .attr("fill", function(d) { return color(d.series); });
 
-                right.append("tspan")
-                    .attr("fill", "white")
-                    .text(function(d) { return d.aggregate + " €"; });
+                right.append("tspan").attr("class", "sum")
+                    .attr("dx", 5)
+                    .attr("fill", "white");
 
                 texts.attr("transform", "translate(0, 10)");
 

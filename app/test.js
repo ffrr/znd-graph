@@ -60,7 +60,7 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
     filter(data, ctrl, charts, true); 
 
     //init navigation
-    var navigation = navig.widget(navConfig, navigationState, charts);    
+    var navigation = navig.widget(navConfig, data, navigationState, charts);    
 
     // add navi to components
     componentDefinitions["nav"] = {

@@ -1,12 +1,12 @@
 "use strict";
-define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-graph-layout"], function(_, $, globals, layout) {
+define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-graph-layout", "util"], function(_, $, globals, layout, util) {
 
-    var widget = function(initialConfig, state, charts) {
+    var widget = function(initialConfig, initialData, state, charts) {
 
         var tabs = { back: null, forward: null }, currentConfig,
             keyMap = { 37: "back", 39: "forward" },
             cont = initialConfig.container,
-            tplPrefix = "tpl", navigPrefix = "navig", prevNavig;
+            tplPrefix = "tpl", navigPrefix = "navig", prevNavig, data = initialData;
 
         var getTplContent = function(layoutType) {
                 return $("#" + [tplPrefix, navigPrefix, layoutType].join("-")).html();
@@ -20,12 +20,21 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
                 return _.template(getTplContent(layoutType));
             })),
 
-            reset = function(newConfig) {
+            reset = function(newConfig, newData) {
                 currentConfig = newConfig || initialConfig;
+                data = newData || data;
+
+                panToStart();
                 resetLayout();
-                applyBehaviors();
-                evaluateTabVisibility();
+
             },
+
+            panToStart = function() {
+                _.each(charts, function(chart) { 
+                    if(chart.pan) chart.pan(state.first()); 
+                });
+            },
+
 
             resetState = function() {
                 if(layout.isMobile()) state.changeWindowWidth(1);
@@ -35,21 +44,35 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
             resetLayout = function() {
                 state.applyLayout();
 
-               _.each(charts, function(chart) { 
-                    if(chart.pan) chart.pan(state.first()); 
-                });
-
                 if(prevNavig) {
                     prevNavig.remove();
                 }
 
-                cont.prepend(cachedTemplates[layout.getCurrent()]());
+                cont.prepend(cachedTemplates[layout.getCurrent()](getModel()));
                 prevNavig = getNavig(layout.getCurrent());
+
+                applyBehaviors();
+                evaluateTabVisibility();
+            },
+
+
+            getModel = function() {
+                if(layout.isMobile()) {
+                    return _.mapValues({
+                        prevYear: data.x[state.current() - 1],
+                        nextYear: data.x[state.current() + 1],
+                        currentYear: data.x[state.current()],
+                        currentTotal: _.reduce(data.y[state.current()], util.sum)
+                    }, function(value, key) {
+                        if (value instanceof Date) return value.getFullYear();
+                        return value;
+                    });
+                }
             },
 
             applyBehaviors = function() {
                 _.each(_.keys(tabs), function(dir) {
-                    tabs[dir] = getNavig(layout.getCurrent()).children("." + dir).first();
+                    tabs[dir] = getNavig(layout.getCurrent()).find("." + dir).first();
                     tabs[dir].on("click", function() {
                         handleShiftingEvent(dir);
                     });
@@ -64,6 +87,7 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
             handleShiftingEvent = function(dir) {
                 doShift(dir);
                 evaluateTabVisibility();
+                resetLayout(); //atrocious, needs to be rewritten
             },
 
             doShift = function(dir) {
@@ -72,6 +96,7 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
                 _.each(charts, function(chart) { 
                     if(chart.pan) chart.pan(position); 
                 });
+
             },         
 
             evaluateTabVisibility = function() {

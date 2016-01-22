@@ -18,8 +18,25 @@
 
   <script type="text/template" class="template" id="tpl-navig-mobile">
     <div class="navigation" id="navig-mobile">        
-        <div class="pan back"><span>&lt;</span></div>
-        <div class="pan forward"><span>&gt;</span></div>
+    <div id="years" class="block">
+      <div class="block back">
+        <% if (prevYear) { %><a href="#" class="icon">
+          <svg>
+            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/app/3rd-party/svg/sprite.svg#year-prev"></use>
+          </svg><%= prevYear %>
+        </a><% } %>
+      </div>
+      <h3><%= currentYear %> <br/> <%= currentTotal %></></h3>
+
+      <div class="block forward">
+         <% if (nextYear) { %><a href="#" class="icon"><%= nextYear %>
+          <svg>
+            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/app/3rd-party/svg/sprite.svg#year-next">
+            </use>
+          </svg>
+        </a><% } %>
+      </div>
+    </div>    
     </div>
   </script>
 

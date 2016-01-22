@@ -1,5 +1,8 @@
 "use strict";
 define("util",["lodash", "jquery"], function(_, $) {
+    
+
+
     var export_ = {
         yearStart: function(year) { 
             return new Date(year, 0, 1); 
@@ -27,6 +30,19 @@ define("util",["lodash", "jquery"], function(_, $) {
 
         randomId: function() { 
             return "" + Math.round(Math.random() * 1e6) + "-" + (new Date().getTime() + "").slice(6); 
+        },
+
+        //shameless steal from http://eng.rightscale.com/2015/01/22/lodash-extensions.html
+        clamp: function(value, minimum, maximum) {
+          if (maximum == null) {
+            maximum = Number.MAX_VALUE;
+          }
+          if (maximum < minimum) {
+            var swap = maximum;
+            maximum = minimum;
+            minimum = swap;
+          }
+          return Math.max(minimum, Math.min(value, maximum));
         }
 
     };
