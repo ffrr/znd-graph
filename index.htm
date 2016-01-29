@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>zoomable c3-based graph</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <script type="text/javascript">
     window.requireTestMode = true;
   </script>
@@ -11,10 +12,10 @@
   <script type="text/template" class="template" id="tpl-navig-desktop">
     <div class="navigation" id="navig-desktop">        
         <div class="pan back"><span><svg>
-            <use width="60%" height="60%" x="10" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/app/3rd-party/svg/sprite.svg#year-prev"></use>
+            <use width="60%" height="60%" x="10" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#year-prev"></use>
           </svg></span></div>
         <div class="pan forward"><span><svg >
-            <use width="60%" height="60%" x="5" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/app/3rd-party/svg/sprite.svg#year-next"></use>
+            <use width="60%" height="60%" x="5" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#year-next"></use>
           </svg></span></div>
     </div>
   </script>
@@ -26,7 +27,7 @@
       <div class="block back">
         <% if (prevYear) { %><a href="#" class="icon">
           <svg>
-            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/app/3rd-party/svg/sprite.svg#year-prev"></use>
+            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#year-prev"></use>
           </svg><%= prevYear %>
         </a><% } %>
       </div>
@@ -35,7 +36,7 @@
       <div class="block forward">
          <% if (nextYear) { %><a href="#" class="icon"><%= nextYear %>
           <svg>
-            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/app/3rd-party/svg/sprite.svg#year-next">
+            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#year-next">
             </use>
           </svg>
         </a><% } %>
