@@ -1,5 +1,7 @@
 "use strict";
 define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "util", "znd-graph-config", "znd-graph-colors", "znd-graph-layout"], function(support, _, c3, d3, $, util, globals, colors, layout) {
+
+
     
     var tooltipRenderer = support.tooltips, 
         gridRenderer = support.grid, 
@@ -523,8 +525,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             };
         },
 
-        formatDate = function(date) {
-            return date instanceof Date ? date.toLocaleDateString("sk-SK"):"súčasnosť";
+        formatDate = function(date) { 
+            return date instanceof Date ? util.formatDate(date):"súčasnosť";
         },
 
         denormalizeSeries = function() {

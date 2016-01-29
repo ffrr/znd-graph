@@ -1,11 +1,16 @@
 "use strict";
 define("util",["lodash", "jquery", "d3"], function(_, $, d3) {
     
-
+    var dateTemplate = 
+        _.template("<%= date.getDate() %>. <%= date.getMonth() + 1 %>. <%= date.getFullYear() %>")
 
     var export_ = {
         yearStart: function(year) { 
             return new Date(year, 0, 1); 
+        },
+
+        formatDate: function(date) {
+            return dateTemplate({ date: date });
         },
 
         yearMid: function(year) { 
