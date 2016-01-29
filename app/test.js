@@ -14,7 +14,6 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
     
         pie: {
             barHeight: 30,
-            amountTickSuffix: "mil. EUR",
             container: d3.select(containerSelector + " .bar")
         },
 

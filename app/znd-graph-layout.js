@@ -37,16 +37,32 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config"], function(util
         return currentLayout == globals.layout.DESKTOP;
     },
 
+	// SRP broken here
+    hideOnMobile = function(el) {
+    	hideHandler(el, "isMobile");
+    },
+
+    hideOnDesktop = function(el) {
+    	hideHandler(el, "isDesktop");
+    },
+
+    hideHandler = function(el, handler) {
+		el.style("visibility", export_[handler]() ? "hidden":"visible");
+	},
+
     isMobile = function() {
         return currentLayout == globals.layout.MOBILE;
     };
+
 
 	export_ = {
 		enable: enable,
 		start: handleResize,
 		isDesktop: isDesktop,
 		isMobile: isMobile,
-		getCurrent: getCurrent
+		getCurrent: getCurrent,
+		hideOnMobile: hideOnMobile,
+		hideOnDesktop: hideOnDesktop
 	};
 
 	return export_;

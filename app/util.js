@@ -1,5 +1,5 @@
 "use strict";
-define("util",["lodash", "jquery"], function(_, $) {
+define("util",["lodash", "jquery", "d3"], function(_, $, d3) {
     
 
 
@@ -18,7 +18,15 @@ define("util",["lodash", "jquery"], function(_, $) {
         
         sum: function(sum, curr) { 
             return (sum || 0) + curr 
-        },      
+        },  
+
+        toD3Node: function(jQueryNodes) {
+            return d3.select(jQueryNodes.get()[0]);
+        },
+
+        toJqueryNode: function(d3Node) {
+            return $(d3Node.node())
+        },
         
         onResizeEnd: function(callback) {
             var resizeId;

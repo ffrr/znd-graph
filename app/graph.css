@@ -263,6 +263,10 @@
   font-weight: normal;
 }
 
+#years h3 {
+  color: white;
+}
+
 @media screen and (max-width: 320px) {
   
 }

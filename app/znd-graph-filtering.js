@@ -25,7 +25,7 @@ define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping", "znd-grap
                 if(graph.type != globalConfig.timeline) { // no matching, no fun :/
                     graph.reset(newData);    
                 } else {
-                    graph.toggleVisibility(false);
+                    graph.toggle(false);
                 }
             });
             controls.reset(newData);
@@ -36,7 +36,7 @@ define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping", "znd-grap
             _.each(graphs, function(graph) {
                 graph.reset(newData);   
                 if(graph.type == globalConfig.timeline) { // no matching, no fun :/
-                    graph.toggleVisibility(true);
+                    graph.toggle(true);
                 }
             });
             controls.reset(newData);

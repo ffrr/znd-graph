@@ -10,8 +10,12 @@
   
   <script type="text/template" class="template" id="tpl-navig-desktop">
     <div class="navigation" id="navig-desktop">        
-        <div class="pan back"><span>&lt;</span></div>
-        <div class="pan forward"><span>&gt;</span></div>
+        <div class="pan back"><span><svg>
+            <use width="60%" height="60%" x="10" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/app/3rd-party/svg/sprite.svg#year-prev"></use>
+          </svg></span></div>
+        <div class="pan forward"><span><svg >
+            <use width="60%" height="60%" x="5" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/app/3rd-party/svg/sprite.svg#year-next"></use>
+          </svg></span></div>
     </div>
   </script>
 
@@ -26,7 +30,7 @@
           </svg><%= prevYear %>
         </a><% } %>
       </div>
-      <h3><%= currentYear %> <br/> <%= currentTotal %></></h3>
+      <h3><%= currentYear %> <br/> <i><%= currentTotal %> €</i></></h3>
 
       <div class="block forward">
          <% if (nextYear) { %><a href="#" class="icon"><%= nextYear %>

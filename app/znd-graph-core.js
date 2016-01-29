@@ -127,6 +127,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             initDefaults();
             dataWindow = window_(data, [0, config.segments]);
             initialize();
+            repositionTooltips();
         },
 
         initDefaults = function() {
@@ -134,7 +135,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 padding: {},
                 margin: {},
                 segments: 7,
-                amountTickSuffix: " mil €"
+                amountTickSuffix: " €"
             });
 
             _.defaults(config.padding, {
@@ -193,7 +194,6 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             renderGrid();
             //renderArea();
             renderBars();
-            repositionTooltips();
             
             //renderPointGroups();
             renderYAxes();
@@ -367,7 +367,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             clip = canvas.append("clipPath").attr("id", "clip-"+ id).append("rect"),
             content = inner(canvas),
             grid = inner(content),
-            timeline = inner(content),
+            timeline = inner(content).attr("class", "inner-timeline"),
             legend = inner(canvas),
             
             leftAxis = legend.append("g").attr("class", "labelgroup-left"),
@@ -380,7 +380,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             bottomAxis = timeAxis(timeline, false),
 
             pointer = legend.append("circle")
-                .attr({"r": 4, "fill": "transparent", "stroke": "#FFF", "stroke-width": 2});
+                .attr({"r": 4, "fill": "transparent", "stroke": "#FFF", "stroke-width": 2})
+                .style("visibility", "hidden");
 
         canvas.attr("clip-path", "url(#clip-"+ id +")")
 
@@ -420,7 +421,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 segments: 7,
                 tipCompensation: 4,
                 labelPadding: 15,
-                legendItemHeight: 50
+                legendItemHeight: 50,
+                amountTickSuffix: " €"
             });
 
             _.defaults(config.padding, {
@@ -480,12 +482,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             renderYAxes();
             
 
-            repositionTooltips();
+            //repositionTooltips();
+
+            renderTitle();
 
             sizing();
             pan(currentPan !== null && currentPan !== undefined ? currentPan:navig.last());
 
-            renderCirclePointer();
+            attachTooltip();
         },
 
         renderTooltipTemplate = function(model) {
@@ -496,6 +500,10 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 tpl = _.template(["<div class=\"tooltip-timeline\">", company, position, ranges, "</div>"].join(""));
 
             return tpl(model);
+        },
+
+        renderTitle = function() {
+            layout.hideOnMobile(title);
         },
 
         formatDateRanges = function(ranges) {
@@ -558,12 +566,16 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         computeHeight = function() {
             var p = config.padding;
             innerHeight = (positionalSeries.length - 1)* itemHeight + (headerSeries.length - 1) * legendItemHeight; 
-            innerY = config.padding.top + titleHeight + titleToTimelinePadding + legendItemHeight;
+            innerY = config.padding.top + (layout.isMobile() ? 0 : (titleHeight + titleToTimelinePadding)) + legendItemHeight;
             config.height = innerY + innerHeight + p.bottom + bottomAxis.height();
         },
 
         renderXAxis = function() {
-            bottomAxis.reset(data, timeScale, { x: columnWidth/2, y: config.height - bottomAxis.height() }, null);
+            layout.hideOnMobile(bottomAxis.container);
+            
+            if(layout.isDesktop()) {
+                bottomAxis.reset(data, timeScale, { x: columnWidth/2, y: config.height - bottomAxis.height() }, null);
+            }
         },
 
         renderYAxes = function() {
@@ -597,7 +609,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             });
 
             legend.selectAll("tspan.sum").text(function(d) {
-                return data.y[position][d.seriesIndex] + " €";
+                return data.y[position][d.seriesIndex] + config.amountTickSuffix;
             });
         },
 
@@ -696,50 +708,65 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             renderOverlays(timeline);
         },
 
-        renderCirclePointer = function() {
-            var containerEl = $(config.container[0][0]),
-                tooltipEl = containerEl.children(".d3-tip").first();
+        attachTooltip = function() {
+            var containerEl = $(config.container.node()),
+                tooltipEl = containerEl.children(".d3-tip").first(),
 
-            timeline.selectAll(".bar-overlay").on("mousemove", function() {
-                var currentShift = pointer[0][0].getCTM().e,
-                    currentDatum = d3.select(d3.event.srcElement).datum();
+                moveHandler = function() {
+                    var currentShift = pointer.node().getCTM().e,
+                        currentDatum = d3.select(d3.event.srcElement).datum();
 
-                pointer.attr({ "cx": d3.event.x - currentShift, "cy": verticalPosition(currentDatum) });                
+                    pointer.attr({ "cx": d3.event.x - currentShift, "cy": verticalPosition(currentDatum) });                
 
-                tooltipEl.css({
-                    left: d3.event.x - tooltipEl.width() / 2 - 6, 
-                    top: verticalPosition(currentDatum) + containerEl.position().top - (tooltipEl.height() + 40)
-                });
+                    tooltipEl.css({
+                        left: d3.event.x - tooltipEl.width() / 2 - 6, 
+                        top: verticalPosition(currentDatum) + containerEl.position().top - (tooltipEl.height() + 40)
+                    });
 
-                tooltipEl.html(currentDatum.tooltipDescription)
-            });
+                    tooltipEl.html(currentDatum.tooltipDescription);
+                },
 
-            canvas.on("mouseover", function() {
-                tooltipEl.show();
-                pointer.style("visibility", "visible"); 
-            });
+                overHandler = function() {
+                    var hasDatum = d3.select(d3.event.srcElement).datum();
+                    if(hasDatum) {
+                        tooltipEl.show();
+                        pointer.style("visibility", "visible"); 
+                    }
+                },
 
-            canvas.on("mouseout", function() {
-                var toParent = _.includes($(d3.event.toElement).parents().get(), tooltipEl[0]);
-                if(d3.event.toElement !== tooltipEl[0] /* && !toParent */)  { //add parent detection
-                    tooltipEl.hide();
-                    pointer.style("visibility", "hidden"); 
-                }
-            });
+                outHandler = function() {
+                    var overTooltip = _.includes(tooltipEl.find("*").get(), d3.event.toElement);
+                    if(!overTooltip)  { //add parent detection
+                        tooltipEl.hide();
+                        pointer.style("visibility", "hidden"); 
+                    }
+                },
+
+                toggle = function(handler) {
+                    return layout.isMobile() ? null:handler;
+                };
+
+            layout.hideOnMobile(util.toD3Node(tooltipEl));
+            
+            timeline.selectAll(".bar-overlay").on("mousemove", toggle(moveHandler));
+            canvas.on("mouseover", toggle(overHandler));
+            canvas.on("mouseout", toggle(outHandler));
 
         },
 
+
         renderGrid = function() {
 
-            grid.style("visibility", layout.isMobile() ? "hidden":"visible");
-            
+            layout.hideOnMobile(grid);
 
-            gridRenderer(grid)
-                .vert(paddedTimeScale(columnWidth * data.x.length, data))
-                .reset({
-                    width: columnWidth * data.x.length,
-                    height: config.height
-            });
+            if(layout.isDesktop()) {
+                gridRenderer(grid)
+                    .vert(paddedTimeScale(columnWidth * data.x.length, data))
+                    .reset({
+                        width: columnWidth * data.x.length,
+                        height: config.height
+                });
+            }
         },
         
         sizing = function() {
@@ -756,18 +783,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
             repositionTitle();
 
-        },
 
-
-        repositionTooltips = function() {
-            //tooltips.reset(canvas);
         },
 
         repositionTitle = function() {
             title.transition().attr("x", config.width / 2).attr("y", config.padding.top)
         },
 
-        toggleVisibility = function(toggle) {
+        toggle = function(toggle) {
             //canvas.attr("visibility", toggle ? "visible":"hidden");
             canvas.style("display", toggle ? "block":"none");
         };
@@ -776,7 +799,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             reset: reset,
             pan: pan,
             type: globals.timeline,
-            toggleVisibility: toggleVisibility
+            toggle: toggle
         };
     };
 
@@ -810,7 +833,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 bottomAxisHeight: 20,
                 padding: {},
                 margin: {},
-                amountTickSuffix: " mil €"
+                amountTickSuffix: " €"
             });
 
             computedHeight = config.barHeight + config.bottomAxisHeight;
