@@ -3,14 +3,15 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 
 	var threshold = 1, events = { "seriesToggled": "seriesToggled", "groupingToggled": "groupingToggled" };
 
-
+	// push to template?
 	var toggleButton = function(parent, config, isExpander) {
-		var createdButton = parent.append("li").append("a"),
+		var createdItem = parent.append("li").attr("class", "toggle"),
+			createdButton = createdItem.append("a"),
 			hide = function() {
-				createdButton.style("display", "none");
+				createdItem.style("display", "none");
 			},
 			show = function() {
-				createdButton.style("display", "block");	
+				createdItem.style("display", "block");	
 			};
 
 		createdButton
@@ -73,7 +74,7 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 				expand: { spriteName: "show-more", id: "break-group" , text: "Zobraziť viac" }
 			};			
 
-		var controls = config.container.append("ul"),
+		var controls = config.container.append("ul").attr("class", "list"),
 			expand = toggleButton(config.container, buttonConfig.expand, true),
 			collapse = toggleButton(config.container, buttonConfig.collapse);
 

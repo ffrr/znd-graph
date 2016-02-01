@@ -267,6 +267,14 @@
   color: white;
 }
 
+.toggle {
+  margin: 1.5em;
+}
+
+.navigable {
+  margin-top: 1em;
+}
+
 @media screen and (max-width: 320px) {
   
 }
