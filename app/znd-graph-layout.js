@@ -2,21 +2,28 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config"], function(util
 
 	var widthMap = [[768, globals.layout.MOBILE ], [Number.POSITIVE_INFINITY, globals.layout.DESKTOP]],
 
-	container, definitions, export_, currentLayout,
+	container, definitions, export_, currentLayout, prevLayout,
 
 	enable = function(container_, definitions_) {
 		container = container_, definitions = definitions_;
 
 		reloadLayout();
 
-	    $(window).resize(util.onResizeEnd(function() {
-	    	handleResize();
-	    }));
+	    $(window).resize(
+	    	_.debounce(function() {
+	    		handleResize();
+	    		prevLayout = currentLayout;
+	    	}, 200)
+    	);
 	}, 
 
 	handleResize = function() {
 		reloadLayout();
     	widthDefinition = { width: $(container).width() };
+
+    	if(isMobile() && prevLayout == currentLayout) {
+    		return;
+    	}
 
     	_.forEach(definitions, function(d) {
 			d.component.resize(_.extend(d.config, widthDefinition));
@@ -26,7 +33,7 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config"], function(util
 	reloadLayout = function() {
 		currentLayout = _.find(widthMap, function(layout) {
     		return $(container).width() < layout[0];
-    	})[1]
+    	})[1];
 	},
 
 	getCurrent = function() {
