@@ -33,13 +33,13 @@ define("util",["lodash", "jquery", "d3"], function(_, $, d3) {
             return $(d3Node.node())
         },
         
-        onResizeEnd: function(callback) {
-            var resizeId;
-            return function(evt) {
-                clearTimeout(resizeId);
-                resizeId = setTimeout(callback, 350, evt);
-            };
-        },
+        // onResizeEnd: function(callback) {
+        //     var resizeId;
+        //     return function(evt) {
+        //         clearTimeout(resizeId);
+        //         resizeId = setTimeout(callback, 350, evt);
+        //     };
+        // },
 
         randomId: function() { 
             return "" + Math.round(Math.random() * 1e6) + "-" + (new Date().getTime() + "").slice(6); 
