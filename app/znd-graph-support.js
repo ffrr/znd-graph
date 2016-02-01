@@ -10,14 +10,39 @@ define("znd-graph-support", ["lodash","d3", "util", "d3-tip"], function(_, d3, u
         return ret;
     };
 
-    var timeAxis = function(parent, renderSums) {
-        var data, scale, pos, suffix;
+    var numberFormat = function() {
+
+        var data, amountTickSuffix = " €",  
+            
+            _export = {
+                reset: function(newData) {
+                    data = newData;
+                },
+
+                amountRenderer: function(d) {
+                    return d + amountTickSuffix;
+                },
+
+                yearlySumRenderer: function(d, index) {
+                    return _.reduce(data.y[index], util.sum) + amountTickSuffix;
+                },
+
+                positionRelativeSumRendererFactory: function(position) {
+                    return function(d) {
+                        return data.y[position][d.seriesIndex] + amountTickSuffix;
+                    };
+                },
+        };
+
+        return _export;
+    };
+
+    var timeAxis = function(parent, renderSums, numberFormat) {
+        var data, scale, pos;
 
         var mainAxis = d3.svg.axis().orient("bottom").ticks(d3.time.year, 1),
             subAxis = d3.svg.axis().orient("bottom").ticks(d3.time.year, 1)
-                .tickFormat(function(d, index) {
-                    return _.reduce(data.y[index],util.sum) + suffix;
-            }), 
+                .tickFormat(numberFormat.yearlySumRenderer), 
 
             textPadding = { top: 40 };
 
@@ -30,8 +55,8 @@ define("znd-graph-support", ["lodash","d3", "util", "d3-tip"], function(_, d3, u
         }
 
 
-        var reset = function(newData, newScale, newPos, newSuffix) {
-                data = newData; scale = newScale; pos = newPos; suffix = newSuffix;
+        var reset = function(newData, newScale, newPos) {
+                data = newData; scale = newScale; pos = newPos;
                 initialize();
             },
 
@@ -216,6 +241,7 @@ define("znd-graph-support", ["lodash","d3", "util", "d3-tip"], function(_, d3, u
         grid: grid,
         timeAxis: timeAxis,
         paddedTimeScale: paddedTimeScale,
+        numberFormat: numberFormat
     };
 
 });

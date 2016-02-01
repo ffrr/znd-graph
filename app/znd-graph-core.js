@@ -31,8 +31,8 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         //variables
 
         var me = {}, dir,
-            columnWidth, margin, dataWindow, barWidth, extendedMargin, start, end, max, amountTickSuffix, innerWidth, innerHeight,
-            stackedData, export_, navig, incSegments, currentPan;
+            columnWidth, margin, dataWindow, barWidth, extendedMargin, start, end, max, innerWidth, innerHeight,
+            stackedData, export_, navig, incSegments, currentPan, numberFormat = support.numberFormat();
 
         var id = util.randomId();
 
@@ -63,9 +63,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             amountAxis = d3.svg.axis()
                 .orient("right")
                 .ticks(yTicks)
-                .tickFormat(function(d) {
-                    return d + amountTickSuffix;
-                }),
+                .tickFormat(numberFormat.amountRenderer),
             area = d3.svg.area()
                 .x(function(d) { return timeScale(d.x); })
                 .y0(function(d) { return amountScale(d.y0); })
@@ -93,14 +91,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
             leftAxis = legend.append("g").attr("class", "axis-y axis-left"),
             rightAxis = legend.append("g").attr("class", "axis-y axis-right"),
-            bottomAxis = timeAxis(graph, true),
+            bottomAxis = timeAxis(graph, true, numberFormat),
 
             tooltips = tooltipRenderer(graph, function(d, element) {
                 var model = _.map(d.y, function(item) {
                         return {
                             color: color(item.series),
                             company: item.series,
-                            amount: item.amount + config.amountTickSuffix
+                            amount: numberFormat.amountRenderer(item.amount)
                         }
                     });
                 return tooltipTemplate({ model: model });
@@ -118,7 +116,9 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
             config = arguments[1] || config;
             data = arguments[0] || data;
-            
+
+            numberFormat.reset(data);
+
             if(layout.isMobile()) {
                 $(canvas.node()).hide(); // should stop here, but fails 
                 //return;
@@ -136,8 +136,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             _.defaults(config, {
                 padding: {},
                 margin: {},
-                segments: 7,
-                amountTickSuffix: " €"
+                segments: 7
             });
 
             _.defaults(config.padding, {
@@ -178,7 +177,6 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             end = _.last(data.x);
 
             max = _.max(_.map(data.y, function(item) { return _.reduce(item, util.sum)})) * 1.6;
-            amountTickSuffix = config.amountTickSuffix;
 
             timeScale.domain([start, end]).range([0, outerWidth]);
             amountScale.domain([0, max]).range([innerHeight, 0]);
@@ -307,7 +305,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         },
 
         renderXAxis = function() {
-            bottomAxis.reset(data, timeScale, {x: 0, y: innerHeight}, amountTickSuffix);
+            bottomAxis.reset(data, timeScale, {x: 0, y: innerHeight});
         },
 
         sizing = function() {
@@ -344,7 +342,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         var config, data, start, end, columnWidth, innerHeight,  dataWindow, positionalSeries, rangedSeries, headerSeries, navig,
             innerY, currentPan, titleHeight = 18, titleToTimelinePadding = 50, axisTextPadding = { left: 10, top: 15 },
 
-            segmentAmount, compensationRatio, legendItemHeight, itemHeight, yearlyTotals;
+            segmentAmount, compensationRatio, legendItemHeight, itemHeight, yearlyTotals, numberFormat = support.numberFormat();
 
         //init defaults
 
@@ -379,7 +377,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 .attr("text-anchor", "middle")
                 .text("Účinkovanie osoby vo firmách"),
 
-            bottomAxis = timeAxis(timeline, false),
+            bottomAxis = timeAxis(timeline, false, numberFormat),
 
             pointer = legend.append("circle")
                 .attr({"r": 4, "fill": "transparent", "stroke": "#FFF", "stroke-width": 2})
@@ -391,6 +389,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             data = arguments[0] || data;
             config = arguments[1] || config;
             
+            numberFormat.reset(data);
             
             initDefaults();
             applyLayout();
@@ -423,8 +422,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 segments: 7,
                 tipCompensation: 4,
                 labelPadding: 15,
-                legendItemHeight: 50,
-                amountTickSuffix: " €"
+                legendItemHeight: 50
             });
 
             _.defaults(config.padding, {
@@ -610,9 +608,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 return Math.round((data.y[position][d.seriesIndex] / yearlyTotals[position]) * 100) + " %";
             });
 
-            legend.selectAll("tspan.sum").text(function(d) {
-                return data.y[position][d.seriesIndex] + config.amountTickSuffix;
-            });
+            legend.selectAll("tspan.sum").text(numberFormat.positionRelativeSumRendererFactory(position));
         },
 
         renderLegendHeaders = function() {
@@ -807,16 +803,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
     var horizontalBarChart = function(config, data) {
         
-        var aggregate, total, barData, computedHeight;
+        var aggregate, total, barData, computedHeight, numberFormat = support.numberFormat();
 
 
         var xScale = d3.scale.linear(),
             canvas = config.container.append("svg").attr("class", "canvas-barchart"),
             barChart = inner(canvas),
             grid = inner(canvas),
-            amountAxis = d3.svg.axis().orient("bottom").tickFormat(function(d) {
-                return d + config.amountTickSuffix;
-            }),
+            amountAxis = d3.svg.axis().orient("bottom").tickFormat(numberFormat.amountRenderer),
             bottomAxis = barChart.append("g").attr("class", "axis-x");
 
 
@@ -824,6 +818,9 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         var reset = function(/* newData, newConfig */) {
             data = arguments[0] || data;
             config = arguments[1] || config;
+
+            numberFormat.reset(data);
+
             initDefaults();
             initialize();
         },
@@ -834,8 +831,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 barHeight: 30,
                 bottomAxisHeight: 20,
                 padding: {},
-                margin: {},
-                amountTickSuffix: " €"
+                margin: {}
             });
 
             computedHeight = config.barHeight + config.bottomAxisHeight;
