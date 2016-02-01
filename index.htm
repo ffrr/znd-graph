@@ -25,7 +25,7 @@
     <div class="navigation" id="navig-mobile">        
     <div id="years" class="block">
       <div class="block back">
-        <% if (prevYear) { %><a href="#" class="icon">
+        <% if (prevYear) { %><a class="icon">
           <svg>
             <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#year-prev"></use>
           </svg><%= prevYear %>
@@ -34,7 +34,7 @@
       <h3><%= currentYear %> <br/> <i><%= currentTotal %> €</i></></h3>
 
       <div class="block forward">
-         <% if (nextYear) { %><a href="#" class="icon"><%= nextYear %>
+         <% if (nextYear) { %><a class="icon"><%= nextYear %>
           <svg>
             <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#year-next">
             </use>
