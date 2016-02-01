@@ -22,11 +22,11 @@ define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping", "znd-grap
         applyGrouping = function() {
             var newData = group();
             _.each(graphs, function(graph) {
-                if(graph.type != globalConfig.timeline) { // no matching, no fun :/
+                // if(graph.type != globalConfig.timeline) { // no matching, no fun :/
                     graph.reset(newData);    
-                } else {
-                    graph.toggle(false);
-                }
+                // } else {
+                //     graph.toggle(false);
+                // }
             });
             controls.reset(newData);
         },
@@ -35,9 +35,9 @@ define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping", "znd-grap
             var newData = ungroup();
             _.each(graphs, function(graph) {
                 graph.reset(newData);   
-                if(graph.type == globalConfig.timeline) { // no matching, no fun :/
-                    graph.toggle(true);
-                }
+                // if(graph.type == globalConfig.timeline) { // no matching, no fun :/
+                //     graph.toggle(true);
+                // }
             });
             controls.reset(newData);
         },
@@ -50,7 +50,7 @@ define("znd-graph-filtering", ["lodash", "util", "znd-graph-grouping", "znd-grap
 
         ungroup = function() {
             activeSeries = _.without(data.series, summedSeries);
-            activeSeries.push(aggregatedSeriesList)
+            activeSeries.push(aggregatedSeriesList);
             activeSeries = _.flatten(activeSeries);
             return removeFromClone(_.difference(data.series, activeSeries));  
         },
