@@ -111,8 +111,9 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 if(d.x == start) return "e";
                 return "w";
             }, function(d) {
-                if(d.x == start) return [0, 10];
-                return [0, -10];
+                var yOffset = amountScale(d.y[data.series.length - 1].y1) - innerHeight / 2;
+                if(d.x == start) return [yOffset, 10];
+                return [yOffset, -10];
             });
             
         canvas.attr("clip-path", "url(#clip-"+ id +")");
@@ -236,25 +237,36 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         renderBars = function() {
                                     
             var bars = graph.selectAll(".segment").data(stackedData);
-
+            
             bars.exit().remove();
             bars.enter().append("g").attr("class", "segment");
 
             bars.transition().attr("transform", function(d) { return "translate(" + (timeScale(d.x)) + ",0)"; });
 
-            var bands = bars.selectAll("rect").data(function(d) { return d.y; });
+            var bands = bars.selectAll("rect.band").data(function(d) { return d.y; });
             
             bands.exit().remove();
 
-            bands.enter().append("rect").style("opacity", 0);
+            bands.enter().append("rect").attr("class", "band").style("opacity", 0);
             
             bands.transition()
                 .style("fill", function(d) { return color(d.series); })
                 .style("opacity", 1)
-                .attr("width", barWidth)
-                .attr("y", function(d) { return amountScale(d.y1); })
-                .attr("x", -barWidth/2)                 
-                .attr("height", function(d) { return amountScale(d.y0) - amountScale(d.y1); });
+                .attr({
+                    "x": -barWidth/2,
+                    "y": function(d) { return amountScale(d.y1); },
+                    "width": barWidth,
+                    "height": function(d) { return amountScale(d.y0) - amountScale(d.y1); }
+                });
+
+            bars.append("rect")
+                .attr({"x": -barWidth / 2, 
+                    "class": "segment-overlay", 
+                    "width": barWidth, 
+                    "height": innerHeight,
+                    "opacity": 0
+                });
+
         },
 
         renderPointGroups = function() {
@@ -325,7 +337,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
         },
 
         repositionTooltips = function() {
-            tooltips.reset(graph.selectAll(".segment"));
+            tooltips.reset(graph.selectAll(".segment-overlay"));
         },
 
 

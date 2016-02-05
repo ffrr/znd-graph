@@ -43,7 +43,6 @@ define("znd-graph-support", ["lodash","d3", "util", "d3-tip"], function(_, d3, u
         formatNumber = function(number) {
             var orderIndex = getOrderIndex(number),
                 amountOfDecimalPlaces = orderIndex ? orderIndex - 1:0;
-            
             return ((number / getOrderDivider(orderIndex))
                     .toFixed(amountOfDecimalPlaces) + "")
                     .replace(".", ",") + orderMap[orderIndex] + amountTickSuffix;
@@ -216,6 +215,7 @@ define("znd-graph-support", ["lodash","d3", "util", "d3-tip"], function(_, d3, u
             applyDefaultListeners = defaultListeners != null ? defaultListeners:true;
 
         var toggle = _.curry(function(state, d) {
+            d3.select(this).attr('opacity', state ? 0.1:0);
             tip[state ? "show":"hide"](d, this);
         });
 
