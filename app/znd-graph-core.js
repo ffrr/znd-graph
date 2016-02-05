@@ -32,14 +32,19 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
         var me = {}, dir,
             columnWidth, margin, dataWindow, barWidth, extendedMargin, start, end, max, innerWidth, innerHeight,
-            stackedData, export_, navig, incSegments, currentPan, numberFormat = support.numberFormat();
+            stackedData, export_, navig, incSegments, currentPan;
 
         var id = util.randomId();
 
         //constants
-        var xAxisPadding = 100, yTicks = 4, axisTextPadding = { left: 10, top: 15 };
+        var xAxisPadding = 100, yTicks = 4, axisTextPadding = { left: 10, top: 15 }, numberFormat = support.numberFormat(), minBarHeight = 3;
 
-        var stackedBarData = function(data) {
+        var clampItemToMinimumHeight = function(number) {
+                var onePixelEquivalent = max / innerHeight;
+                return number < onePixelEquivalent ? minBarHeight*onePixelEquivalent:number;
+            },
+
+            stackedBarData = function(data) {
             return function(item, i) {
                 var y0 = 0, obj = {};
                 obj.x = data.x[i];              
@@ -48,7 +53,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                         series: series,
                         amount: item[j],
                         y0: y0, 
-                        y1: y0 += item[j]
+                        y1: y0 += clampItemToMinimumHeight(item[j])
                     }
                 });
 
@@ -64,14 +69,14 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                 .orient("right")
                 .ticks(yTicks)
                 .tickFormat(numberFormat.amountRendererForAxis),
-            area = d3.svg.area()
-                .x(function(d) { return timeScale(d.x); })
-                .y0(function(d) { return amountScale(d.y0); })
-                .y1(function(d) { return amountScale(d.y0 + d.y); }),
-            flatArea = d3.svg.area()
-                .x(function(d) { return timeScale(d.x); })
-                .y0(function() { return amountScale(0); })          
-                .y1(function() { return amountScale(0); }),
+            // area = d3.svg.area()
+            //     .x(function(d) { return timeScale(d.x); })
+            //     .y0(function(d) { return amountScale(d.y0); })
+            //     .y1(function(d) { return amountScale(d.y0 + d.y); }),
+            // flatArea = d3.svg.area()
+            //     .x(function(d) { return timeScale(d.x); })
+            //     .y0(function() { return amountScale(0); })          
+            //     .y1(function() { return amountScale(0); }),
             stack = d3.layout.stack()
                 .values(function(d) { return d.values; });
 
@@ -179,7 +184,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             max = _.max(_.map(data.y, function(item) { return _.reduce(item, util.sum)})) * 1.6;
 
             timeScale.domain([start, end]).range([0, outerWidth]);
-            amountScale.domain([0, max]).range([innerHeight, 0]);
+            amountScale.domain([0, max]).range([innerHeight, 0]).clamp(true);
 
             margin = config.margin;
             extendedMargin = pos.extendedMargin(margin, columnWidth);
