@@ -20,7 +20,7 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
         bar: {
             height: 400,
             container: d3.select(containerSelector + " .area"),
-            max: _.max(_.map(data.y, function(item) { return _.reduce(item, util.sum)})) * 1.6
+            max: util.detectMaximum(data) * 1.6
         }, 
 
         timeline: {

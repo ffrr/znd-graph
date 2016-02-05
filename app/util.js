@@ -5,6 +5,7 @@ define("util",["lodash", "jquery", "d3"], function(_, $, d3) {
         _.template("<%= date.getDate() %>. <%= date.getMonth() + 1 %>. <%= date.getFullYear() %>")
 
     var export_ = {
+
         yearStart: function(year) { 
             return new Date(year, 0, 1); 
         },
@@ -22,7 +23,7 @@ define("util",["lodash", "jquery", "d3"], function(_, $, d3) {
         },
         
         sum: function(sum, curr) { 
-            return (sum || 0) + curr 
+            return (sum || 0) + curr;
         },  
 
         toD3Node: function(jQueryNodes) {
@@ -72,7 +73,11 @@ define("util",["lodash", "jquery", "d3"], function(_, $, d3) {
         }); 
     }, totals = function(data) {
         return _.reduce(aggregates(data), export_.sum);
+    },
+        detectMaximum = function(data) {
+        return _.max(_.map(data.y, function(item) { return _.reduce(item, export_.sum)}))
     };
+        
 
     var mixin = function(module, mixin) {
         return function() {
@@ -84,7 +89,7 @@ define("util",["lodash", "jquery", "d3"], function(_, $, d3) {
         };
     };
 
-    _.assign(export_, { aggregates: aggregates, totals: totals, bus: bus, mixin: mixin})
+    _.assign(export_, { aggregates: aggregates, totals: totals, bus: bus, mixin: mixin, detectMaximum: detectMaximum})
 
     return export_;
 });

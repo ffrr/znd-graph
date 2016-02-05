@@ -63,7 +63,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             amountAxis = d3.svg.axis()
                 .orient("right")
                 .ticks(yTicks)
-                .tickFormat(numberFormat.amountRenderer),
+                .tickFormat(numberFormat.amountRendererForAxis),
             area = d3.svg.area()
                 .x(function(d) { return timeScale(d.x); })
                 .y0(function(d) { return amountScale(d.y0); })
@@ -98,7 +98,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
                         return {
                             color: color(item.series),
                             company: item.series,
-                            amount: numberFormat.amountRenderer(item.amount)
+                            amount: numberFormat.amountRendererForTooltip(item.amount)
                         }
                     });
                 return tooltipTemplate({ model: model });
@@ -810,7 +810,7 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
             canvas = config.container.append("svg").attr("class", "canvas-barchart"),
             barChart = inner(canvas),
             grid = inner(canvas),
-            amountAxis = d3.svg.axis().orient("bottom").tickFormat(numberFormat.amountRenderer),
+            amountAxis = d3.svg.axis().orient("bottom").tickFormat(numberFormat.amountRendererForAxis),
             bottomAxis = barChart.append("g").attr("class", "axis-x");
 
 

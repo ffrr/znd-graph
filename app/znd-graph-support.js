@@ -1,6 +1,8 @@
 "use strict";
 define("znd-graph-support", ["lodash","d3", "util", "d3-tip"], function(_, d3, util) {
     
+    var orderMap = ["", " tis.", " mil.", " mld."];
+
     var scaleFor = function(scale) { return function(d) { return scale.call(window, d); }};
 
     var paddedTimeScale = function(width, data) {
@@ -12,29 +14,64 @@ define("znd-graph-support", ["lodash","d3", "util", "d3-tip"], function(_, d3, u
 
     var numberFormat = function() {
 
-        var data, amountTickSuffix = " €",  
-            
-            _export = {
-                reset: function(newData) {
-                    data = newData;
-                },
+        var data, amountTickSuffix = " €",
 
-                amountRenderer: function(d) {
-                    return d + amountTickSuffix;
-                },
+        reset = function(newData) {
+            data = newData;
+            // var maximum = util.detectMaximum(data);
+            // _.each(orderMap, function(orderSpec) {
+            //     var currentSuffix = orderSpec[1], currentDivider = orderSpec[0];
+            //     if(currentDivider < maximum) {
+            //         orderSuffix = currentSuffix;
+            //         orderDivider = currentDivider;
+            //     } else {
+            //         return false;
+            //     }                        
+            // });
+        },
 
-                yearlySumRenderer: function(d, index) {
-                    return _.reduce(data.y[index], util.sum) + amountTickSuffix;
-                },
+        getOrderIndex = function(number) {
+            // return the index of the order from orderMap - needs to be clamped,
+            // so we don't get an IndexOutOfBounds error
+            return util.clamp(Math.floor(Math.log10(number) / 3), 0, 3);
+        },
 
-                positionRelativeSumRendererFactory: function(position) {
-                    return function(d) {
-                        return data.y[position][d.seriesIndex] + amountTickSuffix;
-                    };
-                },
+        getOrderDivider = function(orderIndex) {
+             return Math.pow(10, (orderIndex) * 3);
+        },
+
+        formatNumber = function(number) {
+            var orderIndex = getOrderIndex(number);
+            /* incidentally, the order of decimal places is the same as the index */
+            return ((number / getOrderDivider(orderIndex)).toFixed(orderIndex ? orderIndex - 1:0) + "").replace(".", ",") 
+                + orderMap[orderIndex] + amountTickSuffix;
+        },
+
+        amountRendererForTooltip = function(d) {
+            return formatNumber(d);
+        },
+
+        amountRendererForAxis = function(d) {
+            return formatNumber(d);
+        },
+
+        yearlySumRenderer = function(d, index) {
+            return formatNumber(_.reduce(data.y[index], util.sum));
+        },
+
+        positionRelativeSumRendererFactory = function(position) {
+            return function(d) {
+                return formatNumber(data.y[position][d.seriesIndex]);
+            };
         };
 
-        return _export;
+        return {
+            reset: reset,
+            amountRendererForTooltip: amountRendererForTooltip,
+            yearlySumRenderer: yearlySumRenderer,
+            positionRelativeSumRendererFactory: positionRelativeSumRendererFactory,
+            amountRendererForAxis: amountRendererForAxis
+        };
     };
 
     var timeAxis = function(parent, renderSums, numberFormat) {
