@@ -25,6 +25,10 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
                 data = newData || data;
 
                 panToStart();
+
+                $(document).off("keyup"); //conditional?
+                $(document).on("keyup", handleDirectionKeyPress);
+
                 resetLayout();
 
             },
@@ -77,17 +81,17 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
                         handleShiftingEvent(dir);
                     });
                 });
-
-                $(document).on("keydown", function(evt) {
-                    var dir = keyMap[evt.keyCode];
-                    if(dir) handleShiftingEvent(dir);
-                });
             },
 
             handleShiftingEvent = function(dir) {
                 doShift(dir);
                 evaluateTabVisibility();
-                resetLayout(); //atrocious, needs to be rewritten
+                resetLayout();
+            },
+
+            handleDirectionKeyPress = function(evt) {
+                var dir = keyMap[evt.keyCode];
+                if(dir) handleShiftingEvent(dir);
             },
 
             doShift = function(dir) {

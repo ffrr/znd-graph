@@ -236,8 +236,10 @@ define("znd-graph-core",["znd-graph-support", "lodash", "c3", "d3", "jquery", "u
 
         renderBars = function() {
                                     
-            var bars = graph.selectAll(".segment").data(stackedData);
+            var bars = graph.selectAll(".segment").data(stackedData),
+                overlays = graph.selectAll(".segment-overlay");
             
+            overlays.remove();
             bars.exit().remove();
             bars.enter().append("g").attr("class", "segment");
 
