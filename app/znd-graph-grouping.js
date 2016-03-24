@@ -1,5 +1,6 @@
-"use strict";
+
 define("znd-graph-grouping", ["lodash", "util", "znd-graph-config"], function(_, util, globalConfig) {
+    "use strict";
 
     var aggregateName = globalConfig.groupingAggregateName;
 
@@ -18,10 +19,10 @@ define("znd-graph-grouping", ["lodash", "util", "znd-graph-config"], function(_,
 
         cloned.series.push(aggregateName);
 
-        cloned.y = _.map(data.y, function(arr) { 
+        cloned.y = _.map(data.y, function(arr) {
             arr.push(
                 _.reduce(_.takeRight(arr, remainingCount), util.sum)
-            ); 
+            );
             return arr;
         });
 
@@ -34,21 +35,21 @@ define("znd-graph-grouping", ["lodash", "util", "znd-graph-config"], function(_,
             descending = _.sortBy(_.zip(data.series, util.aggregates(data)), function(pair) { return -pair[1]; }),
 
             indexes = _.map(descending, function(pair) { return _.indexOf(data.series, pair[0]); });
-            
-            cloned.y = _.map(data.y, function(arr) { 
-                return _.map(indexes, function(index) { 
-                    return arr[index]; } 
-                )
+
+            cloned.y = _.map(data.y, function(arr) {
+                return _.map(indexes, function(index) {
+                    return arr[index]; }
+                );
             });
 
-            cloned.series = _.map(indexes, function(index) { 
+            cloned.series = _.map(indexes, function(index) {
                 return data.series[index];
             });
 
-            cloned.timeline = _.map(indexes, function(index) { 
+            cloned.timeline = _.map(indexes, function(index) {
                 return data.timeline[index];
             });
-        
+
         return cloned;
     };
 
@@ -59,5 +60,3 @@ define("znd-graph-grouping", ["lodash", "util", "znd-graph-config"], function(_,
     };
 
 });
-
-

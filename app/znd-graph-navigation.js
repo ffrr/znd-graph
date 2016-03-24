@@ -1,187 +1,199 @@
-"use strict";
 define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-graph-layout", "util"], function(_, $, globals, layout, util) {
+  "use strict";
+  var widget = function(initialConfig, initialData, state, charts) {
 
-    var widget = function(initialConfig, initialData, state, charts) {
+    var tabs = {
+        back: null,
+        forward: null
+      },
+      currentConfig,
+      keyMap = {
+        37: "back",
+        39: "forward"
+      },
+      cont = initialConfig.container,
+      tplPrefix = "tpl",
+      navigPrefix = "navig",
+      prevNavig, data = initialData;
 
-        var tabs = { back: null, forward: null }, currentConfig,
-            keyMap = { 37: "back", 39: "forward" },
-            cont = initialConfig.container,
-            tplPrefix = "tpl", navigPrefix = "navig", prevNavig, data = initialData;
+    var getTplContent = function(layoutType) {
+        return $("#" + [tplPrefix, navigPrefix, layoutType].join("-")).html();
+      },
 
-        var getTplContent = function(layoutType) {
-                return $("#" + [tplPrefix, navigPrefix, layoutType].join("-")).html();
-            },
+      getNavig = function(layoutType) {
+        return $("#" + [navigPrefix, layoutType].join("-"));
+      },
 
-            getNavig = function(layoutType) {
-                return $("#" + [navigPrefix, layoutType].join("-"));
-            },
-
-            cachedTemplates = _.zipObject(globals.layouts, _.map(globals.layouts, function(layoutType) {
-                return _.template(getTplContent(layoutType));
-            })),
-
-            reset = function(newConfig, newData) {
-                currentConfig = newConfig || initialConfig;
-                data = newData || data;
-
-                panToStart();
-
-                $(document).off("keyup"); //conditional?
-                $(document).on("keyup", handleDirectionKeyPress);
-
-                resetLayout();
-
-            },
-
-            panToStart = function() {
-                _.each(charts, function(chart) { 
-                    if(chart.pan) chart.pan(state.first()); 
-                });
-            },
+      cachedTemplates = _.zipObject(globals.layouts, _.map(globals.layouts, function(layoutType) {
+        return _.template(getTplContent(layoutType));
+      })),
 
 
-            resetState = function() {
-                if(layout.isMobile()) state.changeWindowWidth(1);
-                else state.changeWindowWidth(3);
-            },
+      panToStart = function() {
+        _.each(charts, function(chart) {
+          if (chart.pan) {
+            chart.pan(state.first());
+          }
+        });
+      },
 
-            resetLayout = function() {
-                state.applyLayout();
+      getModel = function() {
+        if (layout.isMobile()) {
+          return _.mapValues({
+            prevYear: data.x[state.current() - 1],
+            nextYear: data.x[state.current() + 1],
+            currentYear: data.x[state.current()],
+            currentTotal: _.reduce(data.y[state.current()], util.sum)
+          }, function(value, key) {
+            return value instanceof Date ? value.getFullYear():value;
+          });
+        }
+      },
 
-                if(prevNavig) {
-                    prevNavig.remove();
-                }
+      doShift = function(dir) {
+        var position = state[dir]();
 
-                cont.prepend(cachedTemplates[layout.getCurrent()](getModel()));
-                prevNavig = getNavig(layout.getCurrent());
+        _.each(charts, function(chart) {
+          if (chart.pan) {
+            chart.pan(position);
+          }
+        });
 
-                applyBehaviors();
-                evaluateTabVisibility();
-            },
+      },
 
+      evaluateTabVisibility = function() {
+        tabs.back.toggle(!state.depleted());
+        tabs.forward.toggle(!state.maxed());
+      },
 
-            getModel = function() {
-                if(layout.isMobile()) {
-                    return _.mapValues({
-                        prevYear: data.x[state.current() - 1],
-                        nextYear: data.x[state.current() + 1],
-                        currentYear: data.x[state.current()],
-                        currentTotal: _.reduce(data.y[state.current()], util.sum)
-                    }, function(value, key) {
-                        if (value instanceof Date) return value.getFullYear();
-                        return value;
-                    });
-                }
-            },
+      handleShiftingEvent = function(dir) {
+        doShift(dir);
+        evaluateTabVisibility();
+        resetLayout();
+      },
 
-            applyBehaviors = function() {
-                _.each(_.keys(tabs), function(dir) {
-                    tabs[dir] = getNavig(layout.getCurrent()).find("." + dir).first();
-                    tabs[dir].on("click", function() {
-                        handleShiftingEvent(dir);
-                    });
-                });
-            },
+      handleDirectionKeyPress = function(evt) {
+        var dir = keyMap[evt.keyCode];
+        if (dir) {
+          handleShiftingEvent(dir);
+        }
+      },
 
-            handleShiftingEvent = function(dir) {
-                doShift(dir);
-                evaluateTabVisibility();
-                resetLayout();
-            },
+      applyBehaviors = function() {
+        _.each(_.keys(tabs), function(dir) {
+          tabs[dir] = getNavig(layout.getCurrent()).find("." + dir).first();
+          tabs[dir].on("click", function() {
+            handleShiftingEvent(dir);
+          });
+        });
+      },
 
-            handleDirectionKeyPress = function(evt) {
-                var dir = keyMap[evt.keyCode];
-                if(dir) handleShiftingEvent(dir);
-            },
+      resetLayout = function() {
+        state.applyLayout();
 
-            doShift = function(dir) {
-                var position = state[dir]();
+        if (prevNavig) {
+          prevNavig.remove();
+        }
 
-                _.each(charts, function(chart) { 
-                    if(chart.pan) chart.pan(position); 
-                });
+        cont.prepend(cachedTemplates[layout.getCurrent()](getModel()));
+        prevNavig = getNavig(layout.getCurrent());
 
-            },         
+        applyBehaviors();
+        evaluateTabVisibility();
+      },
 
-            evaluateTabVisibility = function() {
-                tabs.back.toggle(!state.depleted());
-                tabs.forward.toggle(!state.maxed());
-            };
+      reset = function(newConfig, newData) {
+        currentConfig = newConfig || initialConfig;
+        data = newData || data;
 
-        return {
-            reset: reset,
-            resize: reset,
-            type: globals.nav
-        };
-    };
+        panToStart();
 
+        $(document).off("keyup"); //conditional?
+        $(document).on("keyup", handleDirectionKeyPress);
 
-    var stateSupport = function(full, initialWindowWidth, step) {
+        resetLayout();
 
-        var cursor = 0, used = false, windowWidth = initialWindowWidth,
-            
-            back = function() {
-                if(!depleted())  {
-                    cursor -= 1;
-                }
-                return compensate();
-            },
+      },
 
-            forward = function() {
-                if(!maxed()) {
-                    cursor  += 1;
-                }
-                return compensate();
-            },
-
-            current = function() {
-                return used ? compensate():last();
-            },
-
-            first = function() {
-                cursor = 0;
-                return compensate();
-            },
-
-            last = function() {
-                cursor = full - (windowWidth * step);
-                return compensate();
-            },
-
-            compensate = function() {
-                used = true;
-                return Math.min(full, cursor * step);
-            },
-
-            depleted = function() {
-                return cursor === 0;
-            },
-
-            maxed = function() {
-                var outerRange = cursor * step + windowWidth;
-                return outerRange >= full;
-            },
-
-            applyLayout = function() {
-                if(layout.isMobile()) windowWidth = 1;
-                else windowWidth = initialWindowWidth;
-            };
-
-        return {
-            back: back,
-            forward: forward,
-            first: first,
-            last: last,
-            current: current,
-            maxed: maxed,
-            depleted: depleted,
-            applyLayout: applyLayout
-        };
-    };
+      resetState = function() {
+          state.changeWindowWidth(layout.isMobile() ? 1:3);
+      };
 
     return {
-        widget: widget,
-        state: stateSupport
+      reset: reset,
+      resize: reset,
+      type: globals.nav
     };
+  };
+
+
+  var stateSupport = function(full, initialWindowWidth, step) {
+
+    var cursor = 0,
+      used = false,
+      windowWidth = initialWindowWidth,
+
+      compensate = function() {
+        used = true;
+        return Math.min(full, cursor * step);
+      },
+
+      depleted = function() {
+        return cursor === 0;
+      },
+
+      maxed = function() {
+        var outerRange = cursor * step + windowWidth;
+        return outerRange >= full;
+      },
+
+      back = function() {
+        if (!depleted()) {
+          cursor -= 1;
+        }
+        return compensate();
+      },
+
+      forward = function() {
+        if (!maxed()) {
+          cursor += 1;
+        }
+        return compensate();
+      },
+
+      last = function() {
+        cursor = full - (windowWidth * step);
+        return compensate();
+      },
+
+      first = function() {
+        cursor = 0;
+        return compensate();
+      },
+
+      current = function() {
+        return used ? compensate() : last();
+      },
+
+      applyLayout = function() {
+        windowWidth = layout.isMobile() ? 1:initialWindowWidth;
+      };
+
+    return {
+      back: back,
+      forward: forward,
+      first: first,
+      last: last,
+      current: current,
+      maxed: maxed,
+      depleted: depleted,
+      applyLayout: applyLayout
+    };
+  };
+
+  return {
+    widget: widget,
+    state: stateSupport
+  };
 
 });

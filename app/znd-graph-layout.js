@@ -1,11 +1,35 @@
-define("znd-graph-layout", ["util", "lodash", "znd-graph-config"], function(util, _, globals) {
+define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], function(util, _, globals, $) {
 
 	var widthMap = [[768, globals.layout.MOBILE ], [Number.POSITIVE_INFINITY, globals.layout.DESKTOP]],
 
 	container, definitions, export_, currentLayout, prevLayout,
 
+	reloadLayout = function() {
+		currentLayout = _.find(widthMap, function(layout) {
+    		return $(container).width() < layout[0];
+    	})[1];
+	},
+
+  isMobile = function() {
+      return currentLayout === globals.layout.MOBILE;
+  },
+
+	handleResize = function() {
+		reloadLayout();
+
+    var widthDefinition = { width: $(container).width() };
+
+  	if(isMobile() && prevLayout === currentLayout) {
+  		return;
+  	}
+
+  	_.forEach(definitions, function(d) {
+		d.component.resize(_.extend(d.config, widthDefinition));
+  	});
+	},
+
 	enable = function(container_, definitions_) {
-		container = container_, definitions = definitions_;
+		container = container_; definitions = definitions_;
 
 		reloadLayout();
 
@@ -15,52 +39,32 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config"], function(util
 	    		prevLayout = currentLayout;
 	    	}, 200)
     	);
-	}, 
-
-	handleResize = function() {
-		reloadLayout();
-    	widthDefinition = { width: $(container).width() };
-
-    	if(isMobile() && prevLayout == currentLayout) {
-    		return;
-    	}
-
-    	_.forEach(definitions, function(d) {
-			d.component.resize(_.extend(d.config, widthDefinition));
-    	});
 	},
 
-	reloadLayout = function() {
-		currentLayout = _.find(widthMap, function(layout) {
-    		return $(container).width() < layout[0];
-    	})[1];
-	},
+
+
 
 	getCurrent = function() {
 		return currentLayout;
 	},
 
-    isDesktop = function() {
-        return currentLayout == globals.layout.DESKTOP;
+  isDesktop = function() {
+        return currentLayout === globals.layout.DESKTOP;
     },
 
-	// SRP broken here
-    hideOnMobile = function(el) {
-    	hideHandler(el, "isMobile");
-    },
 
-    hideOnDesktop = function(el) {
-    	hideHandler(el, "isDesktop");
-    },
-
-    hideHandler = function(el, handler) {
+  hideHandler = function(el, handler) {
 		el.style("visibility", export_[handler]() ? "hidden":"visible");
 	},
 
-    isMobile = function() {
-        return currentLayout == globals.layout.MOBILE;
-    };
+	// SRP broken here
+  hideOnMobile = function(el) {
+  	hideHandler(el, "isMobile");
+  },
 
+  hideOnDesktop = function(el) {
+  	hideHandler(el, "isDesktop");
+  };
 
 	export_ = {
 		enable: enable,

@@ -1,8 +1,7 @@
-"use strict";
+define("znd-testdata", ["util", "lodash"], function(util, _) {
+  "use strict";
 
-define("znd-testdata", ["util"], function(util) {
-
-  var points3 = { 
+  var points3 = {
         series: ["Plastika Nitra", "Prvá tunelárska", "Váhostav"],
         x: [2005, 2006, 2007, 2008, 2009, 2010, 2011] ,
         y: [[60, 10, 40], [60, 1232300, 40], [20, 70, 15], [20, 15, 30], [150, 13, 50 ], [100, 60, 40], [30, 20, 10]],
@@ -22,16 +21,16 @@ define("znd-testdata", ["util"], function(util) {
     });
 
     points3.timeline = points3.timeline.map(function(series) {
-        
+
         return series.map(function(position) {
             position.ranges = _.map(position.ranges, function(range) {
                 return _.map(range, function(dateStr) {
                     return typeof dateStr === "string" ? new Date(Date.parse(dateStr)):null;
-                })
+                });
             });
             return position;
-        })
-    });  
+        });
+    });
 
     return points3;
 
