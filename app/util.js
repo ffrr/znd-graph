@@ -65,9 +65,18 @@ define("util", ["lodash", "jquery", "d3"], function(_, $, d3) {
         return _.reduce(arr, export_.sum);
       });
     },
+
+    percentages = function(data) {
+      var aggregated = aggregates(data), total = _.reduce(aggregated, export_.sum);
+      return _.map(aggregated, function(seriesSum) {
+        return (seriesSum / total) * 100;
+      });
+    },
+
     totals = function(data) {
       return _.reduce(aggregates(data), export_.sum);
     },
+
     detectMaximum = function(data) {
       return _.max(_.map(data.y, function(item) {
         return _.reduce(item, export_.sum);
@@ -89,6 +98,7 @@ define("util", ["lodash", "jquery", "d3"], function(_, $, d3) {
 
   _.assign(export_, {
     aggregates: aggregates,
+    percentages: percentages,
     totals: totals,
     bus: bus,
     mixin: mixin,

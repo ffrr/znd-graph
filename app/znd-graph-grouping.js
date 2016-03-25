@@ -4,29 +4,9 @@ define("znd-graph-grouping", ["lodash", "util", "znd-graph-config"], function(_,
 
     var aggregateName = globalConfig.groupingAggregateName;
 
-    var preprocessDataForGrouping = function(data, threshold) {
-        return addAggregatedByThresholdTo(sortByAggregateSum(data), threshold);
-    };
 
     var hasGrouping = function(data) {
         return _.contains(data.series, aggregateName);
-    };
-
-    var addAggregatedByThresholdTo = function(data, threshold) {
-
-        var threshold = threshold || 1, cloned = _.cloneDeep(data), remainingCount = data.series.length - threshold,
-            aggregatedSeriesList = _.takeRight(cloned.series, remainingCount);
-
-        cloned.series.push(aggregateName);
-
-        cloned.y = _.map(data.y, function(arr) {
-            arr.push(
-                _.reduce(_.takeRight(arr, remainingCount), util.sum)
-            );
-            return arr;
-        });
-
-        return [cloned, aggregatedSeriesList];
     };
 
     var sortByAggregateSum = function(data) {
@@ -51,6 +31,31 @@ define("znd-graph-grouping", ["lodash", "util", "znd-graph-config"], function(_,
             });
 
         return cloned;
+    };
+
+    var addAggregatedByThresholdTo = function(data) {
+
+        var cloned = _.cloneDeep(data), remainingCount = data.series.length - globalConfig.groupingThreshold,
+            aggregatedSeriesList = _.takeRight(cloned.series, remainingCount);
+
+        cloned.series.push(aggregateName);
+
+        cloned.y = _.map(data.y, function(arr) {
+            arr.push(
+                _.reduce(_.takeRight(arr, remainingCount), util.sum)
+            );
+            return arr;
+        });
+
+        cloned.meta = {
+          aggregatedCount: remainingCount
+        };
+
+        return [cloned, aggregatedSeriesList];
+    };
+
+    var preprocessDataForGrouping = function(data, threshold) {
+        return addAggregatedByThresholdTo(sortByAggregateSum(data), threshold);
     };
 
     return {

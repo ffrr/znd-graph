@@ -75,7 +75,8 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
       amountRendererForTooltip: amountRendererForTooltip,
       yearlySumRenderer: yearlySumRenderer,
       positionRelativeSumRendererFactory: positionRelativeSumRendererFactory,
-      amountRendererForAxis: amountRendererForAxis
+      amountRendererForAxis: amountRendererForAxis,
+      amountRendererForControls: amountRendererForAxis
     };
   };
 

@@ -1,10 +1,12 @@
 
-define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquery", "znd-graph-colors"], function(d3, _, util, globalConfig, $, colors) {
+define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquery", "znd-graph-colors", "znd-graph-support"], function(d3, _, util, globalConfig, $, colors, support) {
 	"use strict";
 
-	var threshold = 1, events = { "seriesToggled": "seriesToggled", "groupingToggled": "groupingToggled" };
+	var threshold = 1, events = { "seriesToggled": "seriesToggled", "groupingToggled": "groupingToggled" },
+		numberFormat = support.numberFormat();
 
-	// push to template?
+	// TODO: fuck this shit, move this to template
+	//
 	var toggleButton = function(parent, config, isExpander) {
 		var createdItem = parent.append("li").attr("class", "toggle"),
 			createdButton = createdItem.append("a"),
@@ -40,7 +42,7 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 					activityClass
 				);
 
-				util.bus.fire(events.seriesToggled, [series, active]);
+				util.bus.fire(events.seriesToggled, [series.name, active]);
 			},
 
 			itemContent = item
@@ -54,15 +56,18 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 				.on("change", doToggle),
 
 			label = itemContent
-				.append("b").style("color", function(item) { return colors.getColor(item); }),
+				.append("b").style("color", function(item) { return colors.getColor(item.name); });
 
-			circle = itemContent.append("svg")
+			label.text(function(d) { return d.name + " " + d.percentage + " %"; });
+			itemContent.append("span").style("color", "white").text(function(d) { return " " + d.sum + " " + d.aggregatedCount; });
+
+			var circle = itemContent.append("svg")
 				.attr({ "width": "12", "height": "12", "x": 0, "y": 0})
 				.append("circle")
 					.attr({ "cx": 6, "cy": 6, "r": 6})
-					.attr("fill", function(item) { return colors.getColor(item); });
+					.attr("fill", function(item) { return colors.getColor(item.name); });
 
-		label.text(function(d) { return d; });
+
 
 		return item;
 	};
@@ -87,11 +92,29 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
  			}
  		},
 
+		produceEnhancedSeriesData = function(data) {
+
+			var aggregates = util.aggregates(data),
+				percentages = _.map(util.percentages(data), function(perc) { return perc.toFixed(2); });
+
+			return _.map(data.series, function(seriesName, index) {
+
+				var result = {
+					name: seriesName,
+					percentage: percentages[index],
+					sum: numberFormat.amountRendererForControls(aggregates[index]),
+					aggregatedCount: (seriesName === globalConfig.groupingAggregateName) ? data.meta.aggregatedCount:""
+				};
+
+				return result;
+			});
+		},
+
 		reset = function(newData) {
-			series = newData.series;
+			numberFormat.reset(newData);
 
 			controls.selectAll("." + klass).remove();
-			var items = controls.selectAll("." + klass).data(series);
+			var items = controls.selectAll("." + klass).data(produceEnhancedSeriesData(newData));
 
 			controlListItem(items.enter());
 		},

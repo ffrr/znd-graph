@@ -15,6 +15,8 @@ define("znd-graph-config", ["d3", "lodash"], function(d3, _) {
         timeline: "timeline",
         nav: "nav",
 
+        groupingThreshold: 1,
+
         layout: {
             MOBILE: "mobile",
             DESKTOP: "desktop"
