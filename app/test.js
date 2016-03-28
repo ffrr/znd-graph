@@ -61,7 +61,7 @@ define("test", ["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", 
 
     // init controls
     var ctrl = controls({
-      container: d3.select("#pie")
+      container: $("#pie")
     });
 
     //init filtering
