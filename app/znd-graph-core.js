@@ -1,8 +1,8 @@
-define("znd-graph-core", ["znd-graph-support", "lodash", "c3", "d3", "jquery",
+define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
     "util", "znd-graph-config", "znd-graph-colors", "znd-graph-layout"
   ],
 
-  function(support, _, c3, d3, $, util, globals, colors, layout) {
+  function(support, _, d3, $, util, globals, colors, layout) {
     "use strict";
 
     var tooltipRenderer = support.tooltips,
