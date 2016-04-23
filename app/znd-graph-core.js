@@ -402,6 +402,12 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
           left: 10,
           top: 15
         },
+
+        linePadding = {
+          left: 10,
+          right: 10
+        },
+
         numberFormat = support.numberFormat();
 
       //init defaults
@@ -416,14 +422,14 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
           return item.series + item.position;
         },
         verticalPosition = function(d) {
-          var ret = innerY + d.totalIndex * itemHeight + d.seriesIndex * legendItemHeight;
+          var ret = innerY + d.totalIndex * itemHeight + d.seriesIndex * legendItemHeight + 15;
           return ret;
         },
         headerPosition = function(d) {
           var itemSum = _.reduce(_.range(0, d.seriesIndex), function(total, index) {
             return total + data.timeline[index].length;
           }, 0);
-          return innerY + (itemSum * itemHeight) + d.seriesIndex * legendItemHeight - legendItemHeight;
+          return innerY + (itemSum * itemHeight) + d.seriesIndex * legendItemHeight - legendItemHeight + 10;
         },
         linePosition = function(d) {
           return -$(this).siblings("g.headers-text").find("text").height();
@@ -432,6 +438,7 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
       var canvas = config.container.append("svg").attr("class", "canvas-timeline"),
         clip = canvas.append("clipPath").attr("id", "clip-" + id).append("rect"),
         content = inner(canvas),
+        barClip = content.append("clipPath").attr("id", "clip-bar-" + id),
         grid = inner(content),
         timeline = inner(content).attr("class", "inner-timeline"),
         legend = inner(canvas),
@@ -461,7 +468,7 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
             segmentAmount = 1;
             compensationRatio = 0;
             legendItemHeight = config.legendItemHeight;
-            itemHeight = config.itemHeight * 0.8;
+            itemHeight = config.itemHeight * 0.9;
           }
 
           if (layout.isDesktop()) {
@@ -508,7 +515,7 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
         pan = function(position) {
           var compensation = position > 0 ? columnWidth * compensationRatio : 0;
 
-          pos.pan(content, config.margin, -(position * columnWidth + compensation));
+          pos.pan(timeline, config.margin, -(position * columnWidth + compensation));
           currentPan = position;
           onPan(position);
         },
@@ -710,7 +717,34 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
         },
 
         renderBackgroundBars = function(container) {
-          var bars = container.selectAll(".bar-bg").data(positionalSeries);
+          renderBars(container, "bar-bg");
+        },
+
+        renderClippingBars = function() {
+          var bars = barClip.selectAll(".bar-clipper").data(positionalSeries);
+
+          bars.remove();
+          content.attr("clip-path", "");
+
+          if(layout.isDesktop()) return;
+
+          bars.enter().append("rect");
+
+          bars.transition().attr({
+            "x": linePadding.left,
+            "width": config.width - linePadding.right*2,
+            "y": function(d) { return verticalPosition(d) - 5; },
+            "height": 10,
+            "class": "bar-clipper"
+          });
+
+          content.attr("clip-path", "url(#clip-bar-" + id + ")");
+
+          return bars;
+        },
+
+        renderBars = function(container, className) {
+          var bars = container.selectAll("." + className).data(positionalSeries);
 
           bars.exit().remove();
 
@@ -721,13 +755,17 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
           //added.append("line");
 
           bars.transition().attr({
-            "x1": config.tipCompensation,
-            "x2": columnWidth * data.x.length - config.tipCompensation,
+            "x1": config.tipCompensation + linePadding.left,
+            "x2": columnWidth * data.x.length - config.tipCompensation - linePadding.right,
             "y1": verticalPosition,
             "y2": verticalPosition,
-            "class": "bar-bg"
+            "class": className
           });
+
+          return bars;
         },
+
+
 
         renderOverlays = function(container) {
           var overlays = container.selectAll(".bar-overlay").data(positionalSeries);
@@ -745,7 +783,9 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
         },
 
         renderTimeline = function() {
+
           renderBackgroundBars(timeline);
+
           var front = timeline.selectAll(".bar").data(rangedSeries);
 
           front.exit().remove();
@@ -754,11 +794,11 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
 
           front.transition().attr({
             "x1": function(d) {
-              return timeScale(d.from) + config.tipCompensation;
+              return timeScale(d.from) + config.tipCompensation + linePadding.left;
             },
             "x2": function(d) {
               var sanitizedEnd = d.to instanceof Date ? d.to : util.yearEnd(end.getFullYear()); //todo: move to sanitizer
-              return timeScale(sanitizedEnd) - config.tipCompensation;
+              return timeScale(sanitizedEnd) - config.tipCompensation - linePadding.right;
             },
             "y1": verticalPosition,
             "y2": verticalPosition,
@@ -885,6 +925,7 @@ define("znd-graph-core", ["znd-graph-support", "lodash", "d3", "jquery",
           //color.domain(data.series);
 
           //renderMasks();
+                    renderClippingBars(timeline);
           renderTimeline();
           renderGrid();
           renderXAxis();

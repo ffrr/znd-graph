@@ -136,6 +136,19 @@
   right: 0;
 }
 
+
+
+@media screen and (max-width: 768px) {
+	.canvas-timeline text.label {
+		font-size: 13px;
+	}
+
+	.canvas-timeline .headers-text text {
+		font-size: 15px;
+	}
+}
+
+
 .tooltip-timeline * {
   display: block;
   line-height: 1.5em;
@@ -151,7 +164,7 @@
 .tooltip-timeline .position {
 }
 
-.tooltip-timeline .ranges { 
+.tooltip-timeline .ranges {
   color: #7cb8c4;
 
 }
@@ -255,7 +268,7 @@
   font-style: normal;
   padding-left: .2em;
   padding-right: .4em;
-} 
+}
 
 .d3-tip ul li .amount {
   text-align: right;
@@ -276,8 +289,5 @@
 }
 
 @media screen and (max-width: 320px) {
-  
+
 }
-
-
-
