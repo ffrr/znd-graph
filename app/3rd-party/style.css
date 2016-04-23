@@ -220,7 +220,7 @@ header li a.active			{ font-weight:bold; color:#fff; }
 #pie						{ background-color:#1f5a6b; }
 #pie li						{ width:auto; padding-bottom:0; }
 #pie .hidden				{ display:none; }
-#pie label					{ padding-left:25px; width:150px; }
+#pie label					{ padding-left:25px; }
 #pie label i				{ font-weight:normal; font-style:normal; opacity:0.5; }
 #pie label svg				{ width:12px; height:12px; display:block; float:left; margin-top:3px; margin-right:3px; }
 #pie input					{ display:none; }
@@ -310,7 +310,7 @@ header li a					{ line-height:50px; padding:0; }
 .block						{ padding:20px; }
 .list, .list li				{ padding:10px; }
 h2							{ font-size:24px; letter-spacing:-1px; }
-#search a					{ display:none; } 
+#search a					{ display:none; }
 #main>p						{ font-size:15px; }
 #main>form					{ width:100%; }
 .profile>div				{ text-align:left !important; width:100%; margin-bottom:20px; padding-right:0; }
