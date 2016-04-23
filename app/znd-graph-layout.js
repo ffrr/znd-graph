@@ -1,8 +1,7 @@
 define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], function(util, _, globals, $) {
 
-	var widthMap = [[768, globals.layout.MOBILE ], [Number.POSITIVE_INFINITY, globals.layout.DESKTOP]],
-
-	container, definitions, export_, currentLayout, prevLayout,
+	var container, definitions, export_, currentLayout, prevLayout,
+    widthMap;
 
 	reloadLayout = function() {
 		currentLayout = _.find(widthMap, function(layout) {
@@ -30,7 +29,7 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
 
 	enable = function(container_, definitions_) {
 		container = container_; definitions = definitions_;
-
+    widthMap = [[768 - 40, globals.layout.MOBILE ], [Number.POSITIVE_INFINITY, globals.layout.DESKTOP]],
 		reloadLayout();
 
 	    $(window).resize(

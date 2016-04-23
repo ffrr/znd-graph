@@ -1,7 +1,8 @@
+body, html {
+	background-color: #1f5a6b !important;
+}
 .znd-graph {
-	background-color: #1F5D6E;
 	position: relative;
-  padding: 10px;
 }
 
 .znd-graph > div {
@@ -57,6 +58,22 @@
   font-size: 20px;
   fill: white;
   stroke: none !important;
+}
+
+h3.heading {
+	color: white;
+	font-size: 16px;
+	font-weight: normal;
+	text-align: center;
+}
+
+.bar-title {
+	margin-top: 10px;
+	padding-bottom: 10px;
+}
+
+.timeline-title {
+	margin-top: 10px;
 }
 
 .znd-graph text.heading {
@@ -134,18 +151,6 @@
 
 .znd-graph .pan.forward {
   right: 0;
-}
-
-
-
-@media screen and (max-width: 768px) {
-	.canvas-timeline text.label {
-		font-size: 13px;
-	}
-
-	.canvas-timeline .headers-text text {
-		font-size: 15px;
-	}
 }
 
 
@@ -288,6 +293,19 @@
   margin-top: 1em;
 }
 
-@media screen and (max-width: 320px) {
 
+@media screen and (max-width: 768px) {
+	.canvas-timeline text.label {
+		font-size: 13px;
+	}
+
+	.canvas-timeline .headers-text text {
+		font-size: 15px;
+	}
+}
+
+@media screen and (min-width: 769px) {
+	h3.heading {
+		display: none;
+	}
 }
