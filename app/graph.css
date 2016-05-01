@@ -12,7 +12,7 @@ body, html {
 .znd-graph .canvas-area line, .znd-graph .canvas-timeline line, .znd-graph .bar, .znd-graph .canvas-barchart line {
 	stroke: #317183;
   stroke-width: 1px;
-	shape-rendering: crispEdges;
+	shape-rendering: optimizeSpeed;
 }
 
 .znd-graph .canvas-barchart line {
@@ -24,7 +24,7 @@ body, html {
   stroke-linecap: round;
   stroke-width: 8px;
   stroke: #317183;
-  shape-rendering: geometricPrecision;
+  shape-rendering: optimizeSpeed;
 }
 
 .znd-graph line.bar {
@@ -293,6 +293,9 @@ h3.heading {
   margin-top: 1em;
 }
 
+#graph {
+	width: 100%;
+}
 
 @media screen and (max-width: 768px) {
 	.canvas-timeline text.label {

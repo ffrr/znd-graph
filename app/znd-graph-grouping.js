@@ -4,7 +4,6 @@ define("znd-graph-grouping", ["lodash", "util", "znd-graph-config"], function(_,
 
     var aggregateName = globalConfig.groupingAggregateName;
 
-
     var hasGrouping = function(data) {
         return _.contains(data.series, aggregateName);
     };

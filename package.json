@@ -31,5 +31,8 @@
     "grunt-contrib-requirejs": "*",
     "grunt-contrib-uglify": "*",
     "grunt-contrib-watch": "*"
+  },
+  "dependencies": {
+    "domready": "^1.0.8"
   }
 }

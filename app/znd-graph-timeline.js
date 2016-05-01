@@ -31,10 +31,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
           top: 15
         },
 
-        linePadding = {
-          left: 10,
-          right: 10
-        },
+        linePadding,
 
         numberFormat = support.numberFormat();
 
@@ -97,6 +94,10 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
             compensationRatio = 0;
             legendItemHeight = config.legendItemHeight;
             itemHeight = config.itemHeight * 0.9;
+            linePadding = {
+              left: 10,
+              right: 10
+            };
           }
 
           if (layout.isDesktop()) {
@@ -104,6 +105,10 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
             compensationRatio = 0.5;
             legendItemHeight = 0;
             itemHeight = config.itemHeight;
+            linePadding = {
+              left: 0,
+              right: 0
+            };
           }
         },
 
@@ -142,10 +147,8 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
         pan = function(position) {
           var compensation = position > 0 ? columnWidth * compensationRatio : 0;
-
           pos.pan(timeline, config.margin, -(position * columnWidth + compensation));
           pos.pan(grid, config.margin, -(position * columnWidth + compensation));
-
           currentPan = position;
           onPan(position);
         },
@@ -446,15 +449,17 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
             moveHandler = function() {
               var currentShift = pointer.node().getCTM().e,
-                currentDatum = d3.select(d3.event.srcElement).datum();
+                currentDatum = d3.select(d3.event.srcElement || d3.event.target).datum(),
+                x = d3.event.x || d3.event.clientX,
+                leftPos = x - tooltipEl.width() / 2 - 6;
 
               pointer.attr({
-                "cx": d3.event.x - currentShift,
+                "cx": x - currentShift,
                 "cy": verticalPosition(currentDatum)
               });
 
               tooltipEl.css({
-                left: d3.event.x - tooltipEl.width() / 2 - 6,
+                left: leftPos,
                 top: verticalPosition(currentDatum) + containerEl.position().top - (tooltipEl.height() + 40)
               });
 
@@ -462,8 +467,10 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
             },
 
             overHandler = function() {
-              var hasDatum = d3.select(d3.event.srcElement).datum();
-              if (hasDatum) {
+
+              var target = d3.select(d3.event.srcElement || d3.event.target);
+
+              if (target && target.datum()) {
                 tooltipEl.show();
                 pointer.style("visibility", "visible");
               }
@@ -563,7 +570,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
           renderTitle();
 
           sizing();
-          pan(currentPan !== null && currentPan !== undefined ? currentPan : navig.last());
+          //pan(currentPan !== null && currentPan !== undefined ? currentPan : navig.last());
 
           attachTooltip();
         },

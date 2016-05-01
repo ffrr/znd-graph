@@ -2,12 +2,9 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>zoomable c3-based graph</title>
+  <title>znd</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script type="text/javascript">
-    window.requireTestMode = true;
-  </script>
-  <script data-main="app/config" src="bower_components/requirejs/require.js"></script>
+  <script data-main="app/config.dev" src="bower_components/requirejs/require.js"></script>
 
   <script type="text/template" class="template" id="tpl-controls">
 			<ul class="list">
@@ -62,7 +59,7 @@
           </svg><%= prevYear %>
         </a><% } %>
       </div>
-      <h3><%= currentYear %> <br/> <i><%= currentTotal %> €</i></></h3>
+      <h3><%= currentYear %> <br/> <i><%= currentTotal %></i></></h3>
 
       <div class="block forward">
          <% if (nextYear) { %><a class="icon"><%= nextYear %>

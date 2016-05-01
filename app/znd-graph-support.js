@@ -37,7 +37,7 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
       getOrderIndex = function(number) {
         // return the index of the order from orderMap - needs to be clamped,
         // so we don't get an IndexOutOfBounds error
-        return util.clamp(Math.floor(Math.log10(number) / 3), 0, 3);
+        return util.clamp(Math.floor((Math.log(number) / Math.LN10) / 3), 0, 3);
       },
 
       getOrderDivider = function(orderIndex) {
@@ -263,7 +263,8 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
     },
 
     pan: function(el, margin, distance) {
-      el.transition().attr("transform", "translate(" + (distance) + "," + 0 + ")");
+      el = util.isFirefoxUA() ? el:el.transition();
+      el.attr("transform", "translate(" + (distance) + "," + 0 + ")");
     },
 
     resize: function(el, size, margin) {

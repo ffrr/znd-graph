@@ -1,5 +1,6 @@
-define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-graph-layout", "util"], function(_, $, globals, layout, util) {
+define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-graph-layout", "util", "znd-graph-support"], function(_, $, globals, layout, util, support) {
   "use strict";
+  var formatNumber = support.numberFormat().amountRendererForAxis;
   var widget = function(initialConfig, initialData, state, charts) {
 
     var tabs = {
@@ -28,38 +29,36 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
         return _.template(getTplContent(layoutType));
       })),
 
-
-      panToStart = function() {
-        _.each(charts, function(chart) {
-          if (chart.pan) {
-            chart.pan(state.first());
-          }
-        });
-      },
-
       getModel = function() {
         if (layout.isMobile()) {
           return _.mapValues({
             prevYear: data.x[state.current() - 1],
             nextYear: data.x[state.current() + 1],
             currentYear: data.x[state.current()],
-            currentTotal: _.reduce(data.y[state.current()], util.sum)
+            currentTotal: formatNumber(_.reduce(data.y[state.current()], util.sum))
           }, function(value, key) {
             return value instanceof Date ? value.getFullYear():value;
           });
         }
       },
 
-      doShift = function(dir) {
-        var position = state[dir]();
 
+      panTo = function(position) {
         _.each(charts, function(chart) {
           if (chart.pan) {
             chart.pan(position);
           }
         });
-
       },
+
+      panToStart = function() {
+        panTo(state.first());
+      },
+
+      doShift = function(dir) {
+        panTo(state[dir]());
+      },
+
 
       evaluateTabVisibility = function() {
         tabs.back.toggle(!state.depleted());
@@ -68,7 +67,6 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
 
       handleShiftingEvent = function(dir) {
         doShift(dir);
-        evaluateTabVisibility();
         resetLayout();
       },
 

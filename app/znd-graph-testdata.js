@@ -1,4 +1,4 @@
-define("znd-testdata", ["util", "lodash"], function(util, _) {
+define("znd-graph-testdata", ["util", "lodash"], function(util, _) {
   "use strict";
 
   var points3 = {
@@ -33,5 +33,4 @@ define("znd-testdata", ["util", "lodash"], function(util, _) {
     });
 
     return points3;
-
 });

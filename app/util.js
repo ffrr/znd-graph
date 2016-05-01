@@ -96,13 +96,19 @@ define("util", ["lodash", "jquery", "d3"], function(_, $, d3) {
     };
   };
 
+  // naive, but let's not delve into feature detection
+  var isFirefoxUA = function() {
+    return navigator.userAgent.indexOf("Firefox") > -1;
+  };
+
   _.assign(export_, {
     aggregates: aggregates,
     percentages: percentages,
     totals: totals,
     bus: bus,
     mixin: mixin,
-    detectMaximum: detectMaximum
+    detectMaximum: detectMaximum,
+    isFirefoxUA: isFirefoxUA
   });
 
   return export_;

@@ -17,9 +17,21 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 				util.bus.fire(events.groupingToggled, [toggle]);
 			},
 
+			hideControlsIfUnnecessary = function(data, elementsToHide) {
+				var thresholdHigherThanDataLength = globalConfig.groupingThreshold >= data.series.length - 1;
+				if(thresholdHigherThanDataLength) {
+					_.each(elementsToHide, function(el) { el.hide(); });
+					return true;
+				}
+				return false;
+			},
+
 			evaluateGroupingButtonVisibility = function(data) {
+
 				var expand = controls.find("#break-group"), collapse = controls.find("#join-group"),
 					isInGroupedState = _.contains(data.series, globalConfig.groupingAggregateName);
+
+				if(!isInGroupedState && hideControlsIfUnnecessary(data, [expand, collapse])) return;
 
 				if(isInGroupedState) {
 					expand.show(); collapse.hide();

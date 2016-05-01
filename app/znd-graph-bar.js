@@ -338,7 +338,7 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
           renderYAxes();
           renderXAxis();
 
-          pan(currentPan !== null && currentPan !== undefined ? currentPan : navig.last());
+          //pan(currentPan !== null && currentPan !== undefined ? currentPan : navig.last());
         },
 
         reset = function( /* newData, newConfig */ ) {

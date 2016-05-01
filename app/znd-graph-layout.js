@@ -1,7 +1,7 @@
 define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], function(util, _, globals, $) {
 
 	var container, definitions, export_, currentLayout, prevLayout,
-    widthMap;
+    widthMap, storedWidth;
 
 	reloadLayout = function() {
 		currentLayout = _.find(widthMap, function(layout) {
@@ -14,13 +14,21 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
   },
 
 	handleResize = function() {
+		var detectedWidth = $(container).width();
+
+		if(storedWidth === detectedWidth) {
+			return;
+		}
+
+		storedWidth = detectedWidth;
 		reloadLayout();
 
-    var widthDefinition = { width: $(container).width() };
+    var widthDefinition = { width: detectedWidth };
 
-  	if(isMobile() && prevLayout === currentLayout) {
-  		return;
-  	}
+
+  	// if(isMobile() && prevLayout === currentLayout) {
+  	// 	return;
+  	// }
 
   	_.forEach(definitions, function(d) {
 		d.component.resize(_.extend(d.config, widthDefinition));
