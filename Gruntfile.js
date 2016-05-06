@@ -22,7 +22,7 @@ module.exports = function(grunt) {
       },
       dist: {
         src: ['bower_components/requirejs/require.js', '<%= concat.dist.dest %>'],
-        dest: 'dist/require.js'
+        dest: 'dist/znd-graph.js'
       },
     },
     uglify: {
@@ -38,16 +38,20 @@ module.exports = function(grunt) {
       files: ['test/**/*.html']
     },
     copy: {
-      index: {
-        src: 'index.dist.html',
-        dest: 'dist/'
-      },
-      deploy: {
+      minified: {
+        cwd: 'dist',
         expand: true,
-        cwd: './dist/',
-        src: ['graph.min.css', 'znd-graph.min.js'], 
-        dest: './../znasichdani/system/'            
+        src: ['graph.min.css', 'znd-graph.min.js'],
+        dest: './../znasichdani/system/'
+      },
+
+      configurable: {
+         src: ['znd-graph-init.js', 'znd-graph-testdata.js'],
+         cwd: 'app',
+         expand: true,
+         dest: './../znasichdani/system/'
       }
+
     },
 
     jshint: {
@@ -87,8 +91,8 @@ module.exports = function(grunt) {
     requirejs: {
       compile: {
         options: {
-          name: 'znd-graph',
-          mainConfigFile: 'app/config.js',
+          name: 'znd-graph-bootstrap',
+          mainConfigFile: 'app/config.prod.js',
           out: '<%= concat.dist.dest %>',
           optimize: 'none',
           include: ['../bower_components/requirejs/require.js']
@@ -106,7 +110,7 @@ module.exports = function(grunt) {
           ext: '.min.css'
         }]
       }
-    },   
+    },
 
     connect: {
       development: {
@@ -153,7 +157,7 @@ module.exports = function(grunt) {
   grunt.registerTask('default', ['jshint', 'qunit', 'clean', 'requirejs', 'concat', 'uglify']);
   grunt.registerTask('preview', ['connect:development']);
   grunt.registerTask('preview-live', ['default', 'connect:production']);
-  grunt.registerTask('compile', ['clean', 'requirejs', 'uglify', 'copy:index', 'cssmin']);
-  grunt.registerTask('deploy', ['compile', 'copy:deploy'])
+  grunt.registerTask('compile', ['clean', 'requirejs', 'uglify', 'cssmin']);
+  grunt.registerTask('deploy', ['compile', 'copy:minified', 'copy:configurable'])
 
 };
