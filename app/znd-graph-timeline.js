@@ -407,7 +407,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
           overlays.attr("height", config.itemHeight + 4)
             .attr("width", columnWidth * data.x.length)
             .attr("y", function(d) {
-              return verticalPosition(d) - config.itemHeight;
+              return verticalPosition(d) - config.itemHeight / 2;
             })
             .attr("class", "bar-overlay")
             .attr("fill", "transparent");
@@ -458,7 +458,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
               tooltipEl.css({
                 left: leftPos,
-                top: verticalPosition(currentDatum) + containerEl.position().top - (tooltipEl.height() + 40)
+                top: verticalPosition(currentDatum) + containerEl.position().top - (tooltipEl.height() + 45)
               });
 
               tooltipEl.html(currentDatum.tooltipDescription);
