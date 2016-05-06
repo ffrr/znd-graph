@@ -9,13 +9,13 @@ body, html {
   position: relative;
 }
 
-.znd-graph .canvas-area line, .znd-graph .canvas-timeline line, .znd-graph .bar, .znd-graph .canvas-barchart line {
+.znd-graph .canvas-area line, .znd-graph .canvas-timeline line, .znd-graph .bar, .znd-graph .canvas-piegraph line {
 	stroke: #317183;
   stroke-width: 1px;
 	shape-rendering: optimizeSpeed;
 }
 
-.znd-graph .canvas-barchart line {
+.znd-graph .canvas-piegraph line {
   stroke: black;
   stroke-opacity: 0.1;
 }
@@ -60,7 +60,7 @@ body, html {
   stroke: none !important;
 }
 
-h3.heading {
+#graph h3 {
 	color: white;
 	font-size: 16px;
 	font-weight: normal;
@@ -104,7 +104,7 @@ h3.heading {
   text-anchor: end;
 }
 
-.znd-graph .canvas-barchart .axis-x text {
+.znd-graph .canvas-piegraph .axis-x text {
   font-size: 10px;
 }
 
@@ -295,7 +295,13 @@ h3.heading {
 
 #graph {
 	width: 100%;
+	background-color: #1f5a6b
 }
+
+#graph h3 {
+	display: none;
+}
+
 
 @media screen and (max-width: 768px) {
 	.canvas-timeline text.label {
@@ -305,10 +311,8 @@ h3.heading {
 	.canvas-timeline .headers-text text {
 		font-size: 15px;
 	}
-}
 
-@media screen and (min-width: 769px) {
-	h3.heading {
-		display: none;
+	#graph h3 {
+		display: block;
 	}
 }

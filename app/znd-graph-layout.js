@@ -3,9 +3,10 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
 	var container, definitions, export_, currentLayout, prevLayout,
     widthMap, storedWidth;
 
-	reloadLayout = function() {
+	reloadLayout = function(detectedWidth) {
+		var detectedWidth = detectedWidth || window.innerWidth;
 		currentLayout = _.find(widthMap, function(layout) {
-    		return $(container).width() < layout[0];
+    		return detectedWidth < layout[0];
     	})[1];
 	},
 
@@ -14,30 +15,27 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
   },
 
 	handleResize = function() {
-		var detectedWidth = $(container).width();
+		var detectedWidth = window.innerWidth;
 
 		if(storedWidth === detectedWidth) {
 			return;
 		}
 
 		storedWidth = detectedWidth;
-		reloadLayout();
-
-    var widthDefinition = { width: detectedWidth };
-
+		reloadLayout(detectedWidth);
 
   	// if(isMobile() && prevLayout === currentLayout) {
   	// 	return;
   	// }
 
   	_.forEach(definitions, function(d) {
-		d.component.resize(_.extend(d.config, widthDefinition));
+		d.component.resize(_.extend(d.config, { width: $(container).width() }));
   	});
 	},
 
 	enable = function(container_, definitions_) {
 		container = container_; definitions = definitions_;
-    widthMap = [[768 - 40, globals.layout.MOBILE ], [Number.POSITIVE_INFINITY, globals.layout.DESKTOP]],
+    widthMap = [[768, globals.layout.MOBILE ], [Number.POSITIVE_INFINITY, globals.layout.DESKTOP]],
 		reloadLayout();
 
 	    $(window).resize(

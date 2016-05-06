@@ -6,10 +6,13 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
   function(app, navig, controls, filter, globalConfig, layout, colors, testdata, _, util, $, d3, domready) {
     "use strict";
 
-    // 
-    // var enlargeContainerToVisibleParent = function(containerSelector) {
-    //   var container = $(containerSelector), parentWidth = container.parents("section").width();
-    // }
+
+    var enlargeContainerToVisibleParent = function(containerSelector) {
+      var container = $(containerSelector), parentWidth = container.parents("section").width();
+      if(parentWidth) container.width(parentWidth);
+    }, sizeTheContainerBack = function(containerSelector) {
+      $(containerSelector).width("100%");
+    };
 
     domready(function() {
       var containerSelector = "#graph",
@@ -19,7 +22,7 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
         groupingThreshold = 1;
 
 
-      //enlargeContainerToVisibleParent(containerSelector);
+      enlargeContainerToVisibleParent(containerSelector);
 
       var navigationState = navig.state(data.x.length, segments, 1);
         globalConfig.groupingThreshold = groupingThreshold || 1;
@@ -92,6 +95,7 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
 
       layout.enable($(containerSelector), componentDefinitions);
       layout.start();
+      sizeTheContainerBack(containerSelector);
     });
 
 

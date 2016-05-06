@@ -142,7 +142,7 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
             left: 0,
             top: 20,
             bottom: 0,
-            right: 0,
+            right: 0
           });
         },
 

@@ -14,6 +14,7 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 		var
 			groupingActionHandler = function(evt) {
 				var toggle = controls.find("#break-group").get(0) === this;
+				evt.preventDefault();
 				util.bus.fire(events.groupingToggled, [toggle]);
 			},
 

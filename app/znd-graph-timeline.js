@@ -89,15 +89,17 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
       canvas.attr("clip-path", "url(#clip-" + id + ")");
 
       var applyLayout = function() {
+
+          linePadding = {
+            left: 10,
+            right: 10
+          };
+
           if (layout.isMobile()) {
             segmentAmount = 1;
             compensationRatio = 0;
             legendItemHeight = config.legendItemHeight;
             itemHeight = config.itemHeight * 0.9;
-            linePadding = {
-              left: 10,
-              right: 10
-            };
           }
 
           if (layout.isDesktop()) {
@@ -105,10 +107,6 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
             compensationRatio = 0.5;
             legendItemHeight = 0;
             itemHeight = config.itemHeight;
-            linePadding = {
-              left: 0,
-              right: 0
-            };
           }
         },
 

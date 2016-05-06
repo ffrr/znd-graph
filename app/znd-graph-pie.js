@@ -17,18 +17,18 @@ define("znd-graph-pie", ["znd-graph-support", "lodash", "d3", "jquery",
     var inner = function(base) {
       return base.append("g");
     };
-    
-    var horizontalBarChart = function(config, data) {
+
+    var pieGraph = function(config, data) {
 
       var aggregate, total, barData, computedHeight, numberFormat = support.numberFormat();
 
 
       var xScale = d3.scale.linear(),
-        canvas = config.container.append("svg").attr("class", "canvas-barchart"),
-        barChart = inner(canvas),
+        canvas = config.container.append("svg").attr("class", "canvas-piegraph"),
+        pieGraph = inner(canvas),
         grid = inner(canvas),
         amountAxis = d3.svg.axis().orient("bottom").tickFormat(numberFormat.amountRendererForAxis),
-        bottomAxis = barChart.append("g").attr("class", "axis-x");
+        bottomAxis = pieGraph.append("g").attr("class", "axis-x");
 
 
 
@@ -44,8 +44,8 @@ define("znd-graph-pie", ["znd-graph-support", "lodash", "d3", "jquery",
           computedHeight = config.barHeight + config.bottomAxisHeight;
 
           _.defaults(config.padding, {
-            top: 30,
-            bottom: 40
+            left: 20,
+            right: 20
           });
 
           _.defaults(config.margin, {
@@ -56,8 +56,8 @@ define("znd-graph-pie", ["znd-graph-support", "lodash", "d3", "jquery",
           });
         },
 
-        renderBarChart = function() {
-          var bars = barChart.selectAll(".segment").data(barData);
+        renderPieGraph = function() {
+          var bars = pieGraph.selectAll(".segment").data(barData);
 
           bars.exit().transition().style("opacity", 0).remove();
 
@@ -99,14 +99,14 @@ define("znd-graph-pie", ["znd-graph-support", "lodash", "d3", "jquery",
         },
 
         sizing = function() {
-          var margin = config.margin;
+          var margin = config.margin, padding = config.padding;
 
           pos.resize(canvas, _.assign(config, {
             height: computedHeight
-          }), margin);
+          }), margin, padding);
 
-          pos.remargin(grid, margin);
-          pos.remargin(barChart, margin);
+          pos.remargin(grid, margin, padding);
+          pos.remargin(pieGraph, margin, padding);
         },
 
         initialize = function() {
@@ -132,11 +132,12 @@ define("znd-graph-pie", ["znd-graph-support", "lodash", "d3", "jquery",
             });
           });
 
-          xScale.domain([0, total]).range([0, config.width]);
+          //TODO: fix computedSize interface
+          xScale.domain([0, total]).range([0, pos.getComputedSize(config, config.margin, config.padding).width]);
 
           amountAxis.scale(xScale).tickValues([0, total]);
 
-          renderBarChart();
+          renderPieGraph();
           renderGrid();
           renderXAxis();
 
@@ -159,5 +160,5 @@ define("znd-graph-pie", ["znd-graph-support", "lodash", "d3", "jquery",
       };
     };
 
-  return horizontalBarChart;
+  return pieGraph;
 });

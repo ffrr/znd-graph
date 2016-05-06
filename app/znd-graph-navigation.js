@@ -55,6 +55,10 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
         panTo(state.first());
       },
 
+      panToEnd = function() {
+        panTo(state.last());
+      },
+
       doShift = function(dir) {
         panTo(state[dir]());
       },
@@ -67,7 +71,7 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
 
       handleShiftingEvent = function(dir) {
         doShift(dir);
-        resetLayout();
+        refreshNavigTemplate();
       },
 
       handleDirectionKeyPress = function(evt) {
@@ -87,8 +91,14 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
       },
 
       resetLayout = function() {
-        state.applyLayout();
 
+        state.applyLayout();
+        panToEnd();
+        refreshNavigTemplate();
+
+      },
+
+      refreshNavigTemplate = function() {
         if (prevNavig) {
           prevNavig.remove();
         }
@@ -98,19 +108,21 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
 
         applyBehaviors();
         evaluateTabVisibility();
+
       },
 
       reset = function(newConfig, newData) {
         currentConfig = newConfig || initialConfig;
         data = newData || data;
 
-        panToStart();
-
         $(document).off("keyup"); //conditional?
         $(document).on("keyup", handleDirectionKeyPress);
 
-        resetLayout();
+        //resetLayout();
 
+
+        resetLayout();
+        //evaluateTabVisibility();
       },
 
       resetState = function() {

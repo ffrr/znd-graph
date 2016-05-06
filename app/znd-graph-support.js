@@ -250,7 +250,15 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
 
   };
 
-  var positionalUtils = {
+
+
+  var getComputedSize = function(size, margin, padding) {
+      var padding = padding || {};
+      return {
+        width: size.width + margin.left + margin.right - (padding.right || 0) - (padding.left || 0),
+        height: size.height + margin.top + margin.bottom - (padding.top || 0) - (padding.bottom || 0)
+      };
+    }, positionalUtils = {
 
     extendedMargin: function(margin, shift) {
       return _.assign(_.clone(margin), {
@@ -258,8 +266,9 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
       });
     },
 
-    remargin: function(el, margin) {
-      el.transition().attr("transform", "translate(" + (margin.left) + "," + (margin.top) + ")");
+    remargin: function(el, margin, padding) {
+      var padding = padding || {};
+      el.transition().attr("transform", "translate(" + (margin.left + (padding.left || 0)) + "," + (margin.top + (padding.top || 0)) + ")");
     },
 
     pan: function(el, margin, distance) {
@@ -267,10 +276,14 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
       el.attr("transform", "translate(" + (distance) + "," + 0 + ")");
     },
 
-    resize: function(el, size, margin) {
-      el.transition().attr("width", size.width + margin.left + margin.right)
-        .attr("height", size.height + margin.top + margin.bottom);
+    resize: function(el, size, margin, padding) {
+      var computedSize = getComputedSize(size, margin, padding);
+
+      el.transition().attr("width", computedSize.width)
+        .attr("height", computedSize.height);
     },
+
+    getComputedSize: getComputedSize,
 
     innerClip: function(el, size, margin) {
       el.transition().attr("width", size.width)
