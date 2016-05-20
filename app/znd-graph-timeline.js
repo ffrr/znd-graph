@@ -22,17 +22,18 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
       var start, end, columnWidth, innerHeight, outerWidth, computedHeight, dataWindow, positionalSeries,
         rangedSeries, headerSeries, navig, innerY, currentPan, segmentAmount, compensationRatio, legendItemHeight,
-        itemHeight, yearlyTotals;
+        itemHeight, yearlyTotals, configChanged;
 
       var titleHeight = 18,
         titleToTimelinePadding = 50,
+        linePadding = {
+          left: 10,
+          right: 10
+        },
         axisTextPadding = {
           left: 10,
           top: 15
         },
-
-        linePadding,
-
         numberFormat = support.numberFormat();
 
       //init defaults
@@ -89,11 +90,6 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
       canvas.attr("clip-path", "url(#clip-" + id + ")");
 
       var applyLayout = function() {
-
-          linePadding = {
-            left: 10,
-            right: 10
-          };
 
           if (layout.isMobile()) {
             segmentAmount = 1;
@@ -363,7 +359,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
           bars.transition().attr({
             "x": linePadding.left,
-            "width": config.width - linePadding.right*2,
+            "width": config.width - linePadding.right,
             "y": function(d) { return verticalPosition(d) - 5; },
             "height": 10,
             "class": "bar-clipper"
@@ -567,7 +563,9 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
           renderYAxes();
           renderTitle();
 
-          sizing();
+          if(configChanged) {
+            sizing();
+          }
           //pan(currentPan !== null && currentPan !== undefined ? currentPan : navig.last());
 
           attachTooltip();
@@ -577,11 +575,12 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
           data = arguments[0] || data;
           config = arguments[1] || config;
 
+          configChanged = !!arguments[1];
           numberFormat.reset(data);
 
           initDefaults();
           applyLayout();
-          dataWindow = window_(data, [0, segmentAmount]);
+          //dataWindow = window_(data, [0, segmentAmount]);
           initialize();
         };
 

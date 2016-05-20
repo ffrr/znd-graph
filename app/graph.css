@@ -285,6 +285,10 @@ body, html {
   color: white;
 }
 
+#years a {
+	cursor: pointer;
+}
+
 .toggle {
   margin: 1.5em;
 }
@@ -301,7 +305,6 @@ body, html {
 #graph h3 {
 	display: none;
 }
-
 
 @media screen and (max-width: 768px) {
 	.canvas-timeline text.label {

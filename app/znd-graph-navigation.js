@@ -91,11 +91,9 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
       },
 
       resetLayout = function() {
-
         state.applyLayout();
         panToEnd();
         refreshNavigTemplate();
-
       },
 
       refreshNavigTemplate = function() {

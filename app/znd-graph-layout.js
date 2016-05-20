@@ -14,24 +14,33 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
       return currentLayout === globals.layout.MOBILE;
   },
 
-	handleResize = function() {
-		var detectedWidth = window.innerWidth;
+	triggerResizeForComponent = _.curry(function(width, d) {
+		var newConf = _.extend(d.config, { width: width});
+		d.component.resize(newConf);
+	}),
 
-		if(storedWidth === detectedWidth) {
+	handleResize = function() {
+		var detectedWindowWidth = window.innerWidth, detectedContainerWidth = $(container).width();
+
+		if(storedWidth === detectedContainerWidth) {
 			return;
 		}
 
-		storedWidth = detectedWidth;
-		reloadLayout(detectedWidth);
+		storedWidth = detectedContainerWidth;
+		reloadLayout(detectedWindowWidth);
 
   	// if(isMobile() && prevLayout === currentLayout) {
   	// 	return;
   	// }
 
-  	_.forEach(definitions, function(d) {
-		d.component.resize(_.extend(d.config, { width: $(container).width() }));
-  	});
+		if(isDesktop()) {
+			triggerResizeForComponent(detectedContainerWidth, definitions.bar);
+		}
+		
+  	_.forEach(definitions, triggerResizeForComponent($(container).width()));
 	},
+
+
 
 	enable = function(container_, definitions_) {
 		container = container_; definitions = definitions_;
@@ -45,8 +54,6 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
 	    	}, 200)
     	);
 	},
-
-
 
 
 	getCurrent = function() {

@@ -358,7 +358,7 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
           }
 
           initDefaults();
-          dataWindow = window_(data, [0, config.segments]);
+          //dataWindow = window_(data, [0, config.segments]);
           initialize();
           repositionTooltips();
         },
