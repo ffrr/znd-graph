@@ -302,6 +302,24 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
     };
   };
 
+  var preprocessInputs = function(data) {
+    data.x = data.x.map(function(year) {
+        return util.yearStart(year);
+    });
+
+    data.timeline = data.timeline.map(function(series) {
+      return series.map(function(position) {
+        position.ranges = _.map(position.ranges, function(range) {
+          return _.map(range, function(dateStr) {
+              return typeof dateStr === "string" ? new Date(Date.parse(dateStr)):null;
+          });
+        });
+        return position;
+      });
+    });
+    return data;
+  }
+
   return {
     window_: window_,
     positionalUtils: positionalUtils,
@@ -309,7 +327,8 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
     grid: grid,
     timeAxis: timeAxis,
     paddedTimeScale: paddedTimeScale,
-    numberFormat: numberFormat
+    numberFormat: numberFormat,
+    preprocessGraphInputData: preprocessInputs
   };
 
 });

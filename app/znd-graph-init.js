@@ -1,54 +1,45 @@
 require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-graph-filtering",
-    "znd-graph-config", "znd-graph-layout", "znd-graph-colors", "znd-graph-testdata", "lodash", "util",
+    "znd-graph-config", "znd-graph-layout", "znd-graph-colors", "znd-graph-testdata", "znd-graph-support", "lodash", "util",
     "jquery", "d3", "domready"
   ],
 
-  function(app, navig, controls, filter, globalConfig, layout, colors, testdata, _, util, $, d3, domready) {
+  function(app, navig, controls, filter, globalConfig, layout, colors, testdata, support, _, util, $, d3, domready) {
     "use strict";
 
-
-    var enlargeContainerToVisibleParent = function(containerSelector) {
-      var container = $(containerSelector), parentWidth = container.parents("section").width();
-      if(parentWidth) container.width(parentWidth);
-    }, sizeTheContainerBack = function(containerSelector) {
-      $(containerSelector).width("100%");
-    };
-
     domready(function() {
-      var containerSelector = "#graph",
-        data = testdata,
-        segments = 5,
+      var containerSelector = globalConfig.containerSelector || "#graph",
+        data = support.preprocessGraphInputData(testdata),
+        segments = globalConfig.visibleSegments || 5,
         initialWidth = $(containerSelector).width() - 15,
-        groupingThreshold = 1;
+        groupingThreshold = globalConfig.groupingThreshold || 1;
 
-
-      enlargeContainerToVisibleParent(containerSelector);
-
-      var navigationState = navig.state(data.x.length, segments, 1);
-        globalConfig.groupingThreshold = groupingThreshold || 1;
 
       var chartConfigs = {
 
         pie: {
-          barHeight: 30,
+          barHeight: globalConfig.pieHeight || 30, //extract to defaults
           container: d3.select(containerSelector + " .bar")
         },
 
         bar: {
-          height: 400,
+          height: globalConfig.barHeight || 400,
           container: d3.select(containerSelector + " .area"),
           max: util.detectMaximum(data) * 1.6
         },
 
         timeline: {
-          itemHeight: 50,
+          itemHeight: globalConfig.timelineItemHeight || 50,
           container: d3.select(containerSelector + " .timeline")
         }
       };
 
       var navConfig = {
-        container: $(".navigable")
+        container: $(globalConfig.navigationContainerSelector || ".navigable")
       };
+
+      //enlargeContainerToVisibleParent(containerSelector);
+
+      var navigationState = navig.state(data.x.length, segments, 1);
 
       colors.init(data.series);
 
@@ -75,7 +66,7 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
 
       // init controls
       var ctrl = controls({
-        container: $("#pie")
+        container: $(globalConfig.controlContainerSelector || "#pie")
       });
 
       //init filtering

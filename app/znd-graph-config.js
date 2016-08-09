@@ -1,5 +1,4 @@
-
-define("znd-graph-config", ["d3", "lodash"], function(d3, _) {
+define("znd-graph-config", [], function() {
     "use strict";
     var config = {
         colors: [ "00d4ff", "ff92d7", "ffc900", "00c367", "ada9ff", "fff300",
@@ -7,23 +6,19 @@ define("znd-graph-config", ["d3", "lodash"], function(d3, _) {
         "b97aff", "00deb9", "c7344f" ],
 
         spritesPath: "app/3rd-party/svg/sprite.svg",
-        groupingAggregateName: "Ostatné",
+
         containerSelector: "#graph",
+        controlContainerSelector: "#pie",
+        navigationContainerSelector: ".navigable",
 
-        pie: "pie",
-        bar: "bar",
-        timeline: "timeline",
-        nav: "nav",
-
+        groupingAggregateName: "Ostatné",
+        visibleSegments: 5,
         groupingThreshold: 1,
 
-        layout: {
-            MOBILE: "mobile",
-            DESKTOP: "desktop"
-        }
+        pieHeight: 30,
+        barHeight: 400,
+        timelineItemHeight: 50
     };
-
-    config.layouts = _.values(config.layout);
 
     return config;
 });

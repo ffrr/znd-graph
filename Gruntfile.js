@@ -45,8 +45,16 @@ module.exports = function(grunt) {
         dest: './../znasichdani/system/'
       },
 
-      configurable: {
-         src: ['znd-graph-init.js', 'znd-graph-testdata.js'],
+      require: {
+        src: '../bower_components/requirejs/require.js',
+        cwd: 'app',
+        expand: true,
+        flatten: true,
+        dest: './../znasichdani/system/'
+      },
+
+      configuration: {
+         src: [ 'znd-graph-config.js', 'znd-graph-testdata.js'],
          cwd: 'app',
          expand: true,
          dest: './../znasichdani/system/'
@@ -91,11 +99,11 @@ module.exports = function(grunt) {
     requirejs: {
       compile: {
         options: {
-          name: 'znd-graph-bootstrap',
+          name: 'znd-graph-init',
           mainConfigFile: 'app/config.prod.js',
           out: '<%= concat.dist.dest %>',
-          optimize: 'none',
-          include: ['../bower_components/requirejs/require.js']
+          optimize: 'none'
+          //include: ['../bower_components/requirejs/require.js']
         }
       }
     },
@@ -158,6 +166,6 @@ module.exports = function(grunt) {
   grunt.registerTask('preview', ['connect:development']);
   grunt.registerTask('preview-live', ['default', 'connect:production']);
   grunt.registerTask('compile', ['clean', 'requirejs', 'uglify', 'cssmin']);
-  grunt.registerTask('deploy', ['compile', 'copy:minified', 'copy:configurable'])
+  grunt.registerTask('deploy', ['compile', 'copy:minified', 'copy:configuration', 'copy:require'])
 
 };

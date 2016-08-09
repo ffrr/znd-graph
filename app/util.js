@@ -84,6 +84,7 @@ define("util", ["lodash", "jquery", "d3"], function(_, $, d3) {
     };
 
 
+
   var mixin = function(module, mixin) {
     return function() {
       var exp = module.apply(null, arguments);

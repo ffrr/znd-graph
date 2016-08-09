@@ -1,7 +1,7 @@
 {
   "name": "znd-graph",
   "description": "zoomable c3-based graph",
-  "version": "0.0.0",
+  "version": "0.9.0",
   "engines": {
     "node": ">= 0.8.0"
   },

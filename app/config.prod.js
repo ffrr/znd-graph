@@ -14,4 +14,4 @@ require.config({
 });
 
 
-require(['znd-graph-bootstrap'], function(){});
+require(['znd-graph-init'], function(){});

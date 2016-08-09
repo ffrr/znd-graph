@@ -1,4 +1,4 @@
-define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], function(util, _, globals, $) {
+define("znd-graph-layout", ["util", "lodash", "znd-graph-constants", "jquery"], function(util, _, constants, $) {
 
 	var container, definitions, export_, currentLayout, prevLayout,
     widthMap, storedWidth;
@@ -11,7 +11,7 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
 	},
 
   isMobile = function() {
-      return currentLayout === globals.layout.MOBILE;
+      return currentLayout === constants.layout.MOBILE;
   },
 
 	triggerResizeForComponent = _.curry(function(width, d) {
@@ -36,7 +36,7 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
 		if(isDesktop()) {
 			triggerResizeForComponent(detectedContainerWidth, definitions.bar);
 		}
-		
+
   	_.forEach(definitions, triggerResizeForComponent($(container).width()));
 	},
 
@@ -44,7 +44,7 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
 
 	enable = function(container_, definitions_) {
 		container = container_; definitions = definitions_;
-    widthMap = [[768, globals.layout.MOBILE ], [Number.POSITIVE_INFINITY, globals.layout.DESKTOP]],
+    widthMap = [[768, constants.layout.MOBILE ], [Number.POSITIVE_INFINITY, constants.layout.DESKTOP]],
 		reloadLayout();
 
 	    $(window).resize(
@@ -61,7 +61,7 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-config", "jquery"], fun
 	},
 
   isDesktop = function() {
-        return currentLayout === globals.layout.DESKTOP;
+        return currentLayout === constants.layout.DESKTOP;
     },
 
 

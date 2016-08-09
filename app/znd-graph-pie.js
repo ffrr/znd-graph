@@ -1,8 +1,8 @@
 define("znd-graph-pie", ["znd-graph-support", "lodash", "d3", "jquery",
-    "util", "znd-graph-config", "znd-graph-colors", "znd-graph-layout"
+    "util", "znd-graph-constants", "znd-graph-colors", "znd-graph-layout"
   ],
 
-  function(support, _, d3, $, util, globals, colors, layout) {
+  function(support, _, d3, $, util, constants, colors, layout) {
     "use strict";
 
     var tooltipRenderer = support.tooltips,
@@ -156,7 +156,7 @@ define("znd-graph-pie", ["znd-graph-support", "lodash", "d3", "jquery",
 
       return {
         reset: reset,
-        type: globals.pie
+        type: constants.pie
       };
     };
 

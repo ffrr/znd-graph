@@ -1,4 +1,4 @@
-define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-graph-layout", "util", "znd-graph-support"], function(_, $, globals, layout, util, support) {
+define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-constants", "znd-graph-layout", "util", "znd-graph-support"], function(_, $, constants, layout, util, support) {
   "use strict";
   var formatNumber = support.numberFormat().amountRendererForAxis;
   var widget = function(initialConfig, initialData, state, charts) {
@@ -25,7 +25,7 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
         return $("#" + [navigPrefix, layoutType].join("-"));
       },
 
-      cachedTemplates = _.zipObject(globals.layouts, _.map(globals.layouts, function(layoutType) {
+      cachedTemplates = _.zipObject(constants.layouts, _.map(constants.layouts, function(layoutType) {
         return _.template(getTplContent(layoutType));
       })),
 
@@ -130,7 +130,7 @@ define("znd-graph-navigation", ["lodash", "jquery", "znd-graph-config", "znd-gra
     return {
       reset: reset,
       resize: reset,
-      type: globals.nav
+      type: constants.nav
     };
   };
 
