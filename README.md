@@ -91,8 +91,8 @@ define("znd-graph-data", function() {
 
   var data = {
         /**
-         * series (array[string]) - Names of the data series - i.e. the names of companies present in the procurement
-         * data for the person searched.
+         * series (array[string]) - Names of the data series - i.e. the names
+         * of companies present in the procurement data for the person searched.
          **/
         series: ["Plastika Nitra", "Prvá tunelárska", "Váhostav"],
 
@@ -102,27 +102,36 @@ define("znd-graph-data", function() {
         x: [2005, 2006, 2007, 2008, 2009, 2010, 2011] ,
 
         /**
-         * y (array(array(int)) - A matrix of procurement sums in EUR for each data series, can be denoted as
-         * y[yearIndex][seriesIndex]. E.g. Given that x[0] is 2005 and series[0] is "Plastika Nitra", then y[0][0] = 60
-         * is the sum of procurement money earned by Plastika Nitra in the year 2005. )
+         * y (array(array(int)) - A matrix of procurement sums in EUR for each
+         * data series, can be denoted as y[yearIndex][seriesIndex]. E.g. Given
+         * that x[0] is 2005 and series[0] is "Plastika Nitra", then
+         * y[0][0] = 60 is the sum of procurement money earned by Plastika
+         * Nitra in the year 2005. )
          **/
-        y: [[60, 10, 40], [60, 1232300, 40], [20, 70, 15], [20, 15, 30], [150, 13, 50 ], [100, 60, 40], [30, 20, 10]],
+        y: [[60, 10, 40], [60, 1232300, 40], [20, 70, 15], [20, 15, 30],
+        [150, 13, 50 ], [100, 60, 40], [30, 20, 10]],
 
         /**
-         * timeline (array(array(object(string, array(string)) - The timeline data structure. I.e. again, as above,
-         * timeline[0] contains positions occupied in the company "Plastika Nitra".
+         * timeline (array(array(object(string, array(string)) - The timeline
+         * data structure. I.e. again, as above, timeline[0] contains positions
+         * occupied in the company "Plastika Nitra".
          **/
         timeline: [[
             /**
-             * position (string) - The name of the position in the company occupied by the person searched.
-             * ranges (array(array(string)) - Dates denoting the time intervals during which the person searched
-             * occupied the above position. There may be multiple intervals for the given position. Also, the intervals
-             * may not have an upper or lower boundary (at least one of the boundaries is necessary though).
+             * position (string) - The name of the position in the company
+             * occupied by the person searched.
+             * ranges (array(array(string)) - Dates denoting the time intervals
+             * during which the person searched occupied the above position.
+             * There may be multiple intervals for the given position. Also,
+             * the intervals may not have an upper or lower boundary (at least
+             * one of the boundaries is necessary though).
              **/
             { position: "Štatutár", ranges: [["2005-03-01", "2008-02-01"]] },
-            { position: "Zástupca riaditeľa", ranges: [["2008-08-08", "2009-05-02"]] },
+            { position: "Zástupca riaditeľa",
+              ranges: [["2008-08-08", "2009-05-02"]] },
         ],[
-            { position: "Štatutárka", ranges: [["2005-02-03", "2007-09-27"], ["2009-12-12", "2010-01-01"]] },
+            { position: "Štatutárka", ranges: [["2005-02-03", "2007-09-27"],
+              ["2009-12-12", "2010-01-01"]] },
             { position: "Zástupca riaditeľa", ranges: [["2005-06-01", "2008-11-18"]] }
         ],[
             { position: "Kotolník", ranges: [["2005-04-04", null]] },
