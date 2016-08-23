@@ -277,8 +277,7 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
     },
 
     resize: function(el, size, margin, padding) {
-      var computedSize = getComputedSize(size, margin, padding);
-
+      var computedSize = getComputedSize(size, margin, padding)
       el.transition().attr("width", computedSize.width)
         .attr("height", computedSize.height);
     },

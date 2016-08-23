@@ -513,7 +513,6 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
           var margin = config.margin,
             shifted = pos.extendedMargin(margin, columnWidth);
-
           pos.resize(canvas, config, margin);
           pos.innerClip(clip, config, margin);
 
@@ -549,13 +548,6 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
             .domain(data.series)
             .rangePoints([innerY, innerHeight + innerY]);
 
-          // positionScale
-          //     .domain(positionalSeries.map(rangeKey))
-          //     .rangePoints([ innerY, innerHeight + innerY ])
-
-          //color.domain(data.series);
-
-          //renderMasks();
           renderClippingBars();
           renderTimeline();
           renderGrid();
@@ -563,10 +555,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
           renderYAxes();
           renderTitle();
 
-          if(configChanged) {
-            sizing();
-          }
-          //pan(currentPan !== null && currentPan !== undefined ? currentPan : navig.last());
+          sizing();
 
           attachTooltip();
         },
@@ -575,7 +564,6 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
           data = arguments[0] || data;
           config = arguments[1] || config;
 
-          configChanged = !!arguments[1];
           numberFormat.reset(data);
 
           initDefaults();

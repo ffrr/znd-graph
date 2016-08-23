@@ -87,8 +87,14 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
       layout.enable($(containerSelector), componentDefinitions);
       layout.start();
 
+
+
+
       // need a deferred recalc because of the overflows, changes container width
-      _.defer(function() { layout.start(); });
+      _.defer(function() {
+        layout.start();
+        util.bus.fire("groupingToggled", [false]);
+      });
     });
 
 

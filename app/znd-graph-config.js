@@ -5,7 +5,7 @@ define("znd-graph-config", [], function() {
         "ff4dd8", "007cff", "ff8600", "00acd5", "ff4d00", "00d21d",
         "b97aff", "00deb9", "c7344f" ],
 
-        spritesPath: "app/3rd-party/svg/sprite.svg",
+        spritesPath: "system/svg/sprite.svg",
 
         containerSelector: "#graph",
         controlContainerSelector: "#pie",
