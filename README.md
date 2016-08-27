@@ -39,7 +39,7 @@ define("znd-graph-config", [], function() {
 
         /**
          * groupingThreshold (int) - Amount of data series shown fully.
-         * If the total number series passes this threshold, they get
+         * If the total amount of series passes this threshold, they get
          * collapsed and the expand / collapse functionality is activated
          * automatically.
          **/
