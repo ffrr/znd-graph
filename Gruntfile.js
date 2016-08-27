@@ -54,7 +54,7 @@ module.exports = function(grunt) {
       },
 
       configuration: {
-         src: [ 'znd-graph-config.js', 'znd-graph-testdata.js'],
+         src: [ 'znd-graph-config.js', 'znd-graph-data.js'],
          cwd: 'app',
          expand: true,
          dest: './../znasichdani/system/'

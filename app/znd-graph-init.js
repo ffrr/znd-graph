@@ -1,14 +1,14 @@
 require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-graph-filtering",
-    "znd-graph-config", "znd-graph-layout", "znd-graph-colors", "znd-graph-testdata", "znd-graph-support", "lodash", "util",
+    "znd-graph-config", "znd-graph-layout", "znd-graph-colors", "znd-graph-data", "znd-graph-support", "lodash", "util",
     "jquery", "d3", "domready"
   ],
 
-  function(app, navig, controls, filter, globalConfig, layout, colors, testdata, support, _, util, $, d3, domready) {
+  function(app, navig, controls, filter, globalConfig, layout, colors, unprocessedData, support, _, util, $, d3, domready) {
     "use strict";
 
     domready(function() {
       var containerSelector = globalConfig.containerSelector || "#graph",
-        data = support.preprocessGraphInputData(testdata),
+        data = support.preprocessGraphInputData(unprocessedData),
         segments = globalConfig.visibleSegments || 5,
         initialWidth = $(containerSelector).width() - 15,
         groupingThreshold = globalConfig.groupingThreshold || 1;

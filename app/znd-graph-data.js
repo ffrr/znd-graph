@@ -1,4 +1,4 @@
-define("znd-graph-testdata", function() {
+define("znd-graph-data", [], function() {
   "use strict";
 
   var data = {
