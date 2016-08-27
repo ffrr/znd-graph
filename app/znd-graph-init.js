@@ -70,7 +70,7 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
       });
 
       //init filtering
-      filter(data, ctrl, charts, true);
+      filter(data, ctrl, charts, data.series.length > groupingThreshold + 1 );
 
       //init navigation
       var navigation = navig.widget(navConfig, data, navigationState, charts);

@@ -13,7 +13,7 @@ define("znd-graph-config", [], function() {
 
         groupingAggregateName: "Ostatné",
         visibleSegments: 5,
-        groupingThreshold: 1,
+        groupingThreshold: 3,
 
         pieHeight: 30,
         barHeight: 400,

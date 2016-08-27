@@ -19,7 +19,7 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 			},
 
 			hideControlsIfUnnecessary = function(data, elementsToHide) {
-				var thresholdHigherThanDataLength = globalConfig.groupingThreshold >= data.series.length - 1;
+				var thresholdHigherThanDataLength = globalConfig.groupingThreshold + 1 >= data.series.length;
 				if(thresholdHigherThanDataLength) {
 					_.each(elementsToHide, function(el) { el.hide(); });
 					return true;
