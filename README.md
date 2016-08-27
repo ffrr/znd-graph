@@ -97,7 +97,7 @@ define("znd-graph-data", function() {
         series: ["Plastika Nitra", "Prvá tunelárska", "Váhostav"],
 
         /**
-         * x (array(int) - Years, for which the procurement data exist.
+         * x (array(int) - Years, for which the procurement data exists.
          **/
         x: [2005, 2006, 2007, 2008, 2009, 2010, 2011] ,
 
@@ -124,7 +124,7 @@ define("znd-graph-data", function() {
              * during which the person searched occupied the above position.
              * There may be multiple intervals for the given position. Also,
              * the intervals may not have an upper or lower boundary (at least
-             * one of the boundaries is necessary though).
+             * one of the boundaries is required though).
              **/
             { position: "Štatutár", ranges: [["2005-03-01", "2008-02-01"]] },
             { position: "Zástupca riaditeľa",
