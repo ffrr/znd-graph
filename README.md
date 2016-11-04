@@ -120,7 +120,7 @@ define("znd-graph-data", function() {
             /**
              * position (string) - The name of the position in the company
              * occupied by the person searched.
-             * ranges (array(array(string)) - Dates denoting the time intervals
+             * ranges (array(array(ISO8601 calendar date string)) - Dates denoting the time intervals
              * during which the person searched occupied the above position.
              * There may be multiple intervals for the given position. Also,
              * the intervals may not have an upper or lower boundary (at least
