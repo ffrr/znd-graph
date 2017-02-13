@@ -141,8 +141,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
         pan = function(position) {
           var compensation = position > 0 ? columnWidth * compensationRatio : 0;
-          pos.pan(timeline, config.margin, -(position * columnWidth + compensation));
-          pos.pan(grid, config.margin, -(position * columnWidth + compensation));
+          pos.pan(content, config.margin, -(position * columnWidth + compensation));
           currentPan = position;
           onPan(position);
         },

@@ -15,7 +15,7 @@ define("znd-graph-layout", ["util", "lodash", "znd-graph-constants", "jquery"], 
   },
 
 	triggerResizeForComponent = _.curry(function(width, d) {
-		var newConf = _.extend(d.config, { width: width});
+		var newConf = _.extend(d.config, { width: width });
 		d.component.resize(newConf);
 	}),
 

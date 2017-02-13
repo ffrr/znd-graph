@@ -272,8 +272,8 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
     },
 
     pan: function(el, margin, distance) {
-      el = util.isFirefoxUA() ? el:el.transition();
-      el.attr("transform", "translate(" + (distance) + "," + 0 + ")");
+      var elWithTransition = util.isFirefoxUA() ? el:el.transition();
+      elWithTransition.attr("transform", "translate(" + (distance) + "," + 0 + ")");
     },
 
     resize: function(el, size, margin, padding) {

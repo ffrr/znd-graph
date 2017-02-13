@@ -325,20 +325,14 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
 
           sizing();
 
-          //color.domain(data.series);
-          //stackedData = stack(color.domain().map(stackingMapperFactory(data)));
-
           stackedData = _.map(data.y, stackedBarData(data));
 
           renderGrid();
-          //renderArea();
           renderBars();
 
-          //renderPointGroups();
           renderYAxes();
           renderXAxis();
 
-          //pan(currentPan !== null && currentPan !== undefined ? currentPan : navig.last());
         },
 
         reset = function( /* newData, newConfig */ ) {
@@ -358,7 +352,6 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
           }
 
           initDefaults();
-          //dataWindow = window_(data, [0, config.segments]);
           initialize();
           repositionTooltips();
         },
