@@ -1,4 +1,4 @@
-define("znd-graph-colors", ["znd-graph-config", "d3", "lodash"], function(globalConfig, d3, _) {
+define("znd-graph-colors", ["znd-graph-config", "d3", "lodash", "znd-graph-locale"], function(globalConfig, d3, _, locale) {
   var _export, mappedColors, colorRange = globalConfig.colors;
 
   // this has to be redone
@@ -7,7 +7,7 @@ define("znd-graph-colors", ["znd-graph-config", "d3", "lodash"], function(global
 
   var init = function(seriesList) {
       mappedColors = _.zipObject(seriesList, colorRange);
-      mappedColors[globalConfig.groupingAggregateName] = "ffffff";
+      mappedColors[locale("filter.grouping-aggregate")] = "ffffff";
     },
     getColor = function(s) {
       return d3.rgb("#" + mappedColors[s]);

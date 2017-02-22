@@ -1,6 +1,10 @@
 
-define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquery", "znd-graph-colors", "znd-graph-support"], function(d3, _, util, globalConfig, $, colors, support) {
-	"use strict";
+define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquery", "znd-graph-colors",
+  "znd-graph-support", "znd-graph-locale", "znd-graph-grouping"],
+
+  function(d3, _, util, globalConfig, $, colors, support, locale, grouping) {
+
+  "use strict";
 
 	var events = { "seriesToggled": "seriesToggled", "groupingToggled": "groupingToggled" }, //,threshold = 1,
 		numberFormat = support.numberFormat();
@@ -30,7 +34,7 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 			evaluateGroupingButtonVisibility = function(data) {
 
 				var expand = controls.find("#break-group"), collapse = controls.find("#join-group"),
-					isInGroupedState = _.contains(data.series, globalConfig.groupingAggregateName);
+					isInGroupedState = grouping.isGrouped(data);
 
 				if(!isInGroupedState && hideControlsIfUnnecessary(data, [expand, collapse])) return;
 
@@ -81,7 +85,8 @@ define("znd-graph-controls", ["d3", "lodash", "util", "znd-graph-config", "jquer
 		reset = function(newData) {
 			numberFormat.reset(newData);
 			config.container.empty();
-			controls = $(controlsTemplate({ model: getTemplateModel(newData) })).appendTo(config.container);
+			controls = $(controlsTemplate({ model: getTemplateModel(newData), more: locale("controls.more"),
+        less: locale("controls.less") })).appendTo(config.container);
 			attachHandlersToControls();
 			evaluateGroupingButtonVisibility(newData);
 		},

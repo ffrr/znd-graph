@@ -1,8 +1,8 @@
 define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
-    "util", "znd-graph-constants", "znd-graph-colors", "znd-graph-layout"
+    "util", "znd-graph-constants", "znd-graph-colors", "znd-graph-layout", "znd-graph-locale"
   ],
 
-  function(support, _, d3, $, util, constants, colors, layout) {
+  function(support, _, d3, $, util, constants, colors, layout, locale) {
     "use strict";
 
     var tooltipRenderer = support.tooltips,
@@ -74,7 +74,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
         title = legend.append("text").attr("class", "heading")
         .attr("text-anchor", "middle")
-        .text("Účinkovanie osoby vo firmách v jednotlivých rokoch"),
+        .text(locale("timeline.title")),
 
         bottomAxis = timeAxis(timeline, false, numberFormat),
 

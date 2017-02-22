@@ -1,8 +1,8 @@
 
-define("znd-graph-grouping", ["lodash", "util", "znd-graph-config"], function(_, util, globalConfig) {
+define("znd-graph-grouping", ["lodash", "util", "znd-graph-config", "znd-graph-locale"], function(_, util, globalConfig, locale) {
     "use strict";
 
-    var aggregateName = globalConfig.groupingAggregateName;
+    var aggregateName = locale("filter.grouping-aggregate");
 
     var hasGrouping = function(data) {
         return _.contains(data.series, aggregateName);

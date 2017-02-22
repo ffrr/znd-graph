@@ -1,8 +1,8 @@
 define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
-    "util", "znd-graph-constants", "znd-graph-colors", "znd-graph-layout"
+    "util", "znd-graph-constants", "znd-graph-colors", "znd-graph-layout", "znd-graph-locale"
   ],
 
-  function(support, _, d3, $, util, constants, colors, layout) {
+  function(support, _, d3, $, util, constants, colors, layout, locale) {
     "use strict";
 
     var tooltipRenderer = support.tooltips,
@@ -94,7 +94,7 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
 
         title = legend.append("text").attr("class", "heading")
         .attr("text-anchor", "middle")
-        .text("Úspešnosť firmy v tendroch za jednotlivé roky"),
+        .text(locale("bar.title")),
 
         leftAxis = legend.append("g").attr("class", "axis-y axis-left"),
         rightAxis = legend.append("g").attr("class", "axis-y axis-right"),

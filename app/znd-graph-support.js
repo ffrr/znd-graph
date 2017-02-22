@@ -1,7 +1,7 @@
-define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, util) {
+define("znd-graph-support", ["lodash", "d3", "util",  "znd-graph-locale", "d3-tip"], function(_, d3, util, locale) {
   "use strict";
 
-  var orderMap = ["", " tis.", " mil.", " mld."];
+  var orderMap = ["", locale("tick.thousands"), locale("tick.millions"), locale("tick.billions")];
 
   var scaleFor = function(scale) {
     return function(d) {
@@ -49,7 +49,7 @@ define("znd-graph-support", ["lodash", "d3", "util", "d3-tip"], function(_, d3, 
           amountOfDecimalPlaces = orderIndex ? orderIndex - 1 : 0;
         return ((number / getOrderDivider(orderIndex))
             .toFixed(amountOfDecimalPlaces) + "")
-          .replace(".", ",") + orderMap[orderIndex] + amountTickSuffix;
+          .replace(".", ",") + " " +orderMap[orderIndex] + amountTickSuffix;
       },
 
       amountRendererForTooltip = function(d) {
