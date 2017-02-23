@@ -54,10 +54,18 @@ module.exports = function(grunt) {
       },
 
       configuration: {
-         src: [ 'znd-graph-config.js', 'znd-graph-data.js'],
+         src: [ 'znd-graph-config.js', 'znd-graph-data.js', 'znd-graph-locale.js'],
          cwd: 'app',
          expand: true,
          dest: './../znasichdani/system/'
+      },
+
+
+      dist: {
+         src: ['znd-graph-config.js', 'znd-graph-data.js', 'znd-graph-locale.js'],
+         cwd: 'app',
+         expand: true,
+         dest: './dist'
       }
 
     },
@@ -166,6 +174,6 @@ module.exports = function(grunt) {
   grunt.registerTask('preview', ['connect:development']);
   grunt.registerTask('preview-live', ['default', 'connect:production']);
   grunt.registerTask('compile', ['clean', 'requirejs', 'uglify', 'cssmin']);
-  grunt.registerTask('deploy', ['compile', 'copy:minified', 'copy:configuration', 'copy:require'])
+  grunt.registerTask('deploy', ['compile', 'copy:minified', 'copy:configuration', 'copy:require', 'copy:dist'])
 
 };

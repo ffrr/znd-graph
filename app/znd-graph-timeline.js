@@ -87,7 +87,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
         })
         .style("visibility", "hidden");
 
-      canvas.attr("clip-path", "url(#clip-" + id + ")");
+      //canvas.attr("clip-path", "url(#clip-" + id + ")");
 
       var applyLayout = function() {
 
@@ -350,9 +350,9 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
           var bars = barClip.selectAll(".bar-clipper").data(positionalSeries);
 
           bars.exit().remove();
-          content.attr("clip-path", "");
+          //content.attr("clip-path", "");
 
-          if(layout.isDesktop()) return;
+          //if(layout.isDesktop()) return;
 
           bars.enter().append("rect");
 
@@ -364,7 +364,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
             "class": "bar-clipper"
           });
 
-          content.attr("clip-path", "url(#clip-bar-" + id + ")");
+          //content.attr("clip-path", "url(#clip-bar-" + id + ")");
 
           return bars;
         },
@@ -547,7 +547,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
             .domain(data.series)
             .rangePoints([innerY, innerHeight + innerY]);
 
-          renderClippingBars();
+          //renderClippingBars();
           renderTimeline();
           renderGrid();
           renderXAxis();
