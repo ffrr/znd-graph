@@ -420,6 +420,7 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
           front.transition().attr({
             "x1": function(d) {
+              console.log(d.from, timeScale(d.from));
               return timeScale(d.from) + config.tipCompensation + linePadding.left;
             },
             "x2": function(d) {
@@ -529,10 +530,11 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
         },
 
         initialize = function() {
-          columnWidth = config.width / (segmentAmount - compensationRatio);
+          var columnWidthRatio = data.x.length > segmentAmount ? segmentAmount - compensationRatio:data.x.length;
+          columnWidth = config.width / columnWidthRatio;
           start = _.first(data.x);
-          end = _.last(data.x);
-          outerWidth = columnWidth * (data.x.length - 1);
+          end = util.yearEnd(_.last(data.x).getFullYear());
+          outerWidth = columnWidth * data.x.length;
 
           navig = config.navig;
 

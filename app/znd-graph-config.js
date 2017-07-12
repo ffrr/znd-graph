@@ -11,7 +11,7 @@ define("znd-graph-config", [], function() {
         controlContainerSelector: "#pie",
         navigationContainerSelector: ".navigable",
 
-        visibleSegments: 5,
+        visibleSegments: 4,
         groupingThreshold: 1,
 
         pieHeight: 30,

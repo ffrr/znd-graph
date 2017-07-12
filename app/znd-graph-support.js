@@ -301,21 +301,53 @@ define("znd-graph-support", ["lodash", "d3", "util",  "znd-graph-locale", "d3-ti
     };
   };
 
+
+  var data = {
+    series: ["MIM, s.r.o."],
+    x: [2007],
+    y: [[268870.74]],
+    timeline: [[{ position : "Spoločník v.o.s. / s.r.o.", ranges : [["2004-01-23", null ]]}]]
+  };
+
+
   var preprocessInputs = function(data) {
+
+    // convert to date objects
+
     data.x = data.x.map(function(year) {
-        return util.yearStart(year);
+      return util.yearStart(year);
     });
+
+    var fillStart = _.first(data.x),
+      fillEnd = _.last(data.x);
 
     data.timeline = data.timeline.map(function(series) {
       return series.map(function(position) {
         position.ranges = _.map(position.ranges, function(range) {
           return _.map(range, function(dateStr) {
-              return typeof dateStr === "string" ? new Date(Date.parse(dateStr)):null;
+
+              var dateObject = typeof dateStr === "string" ? new Date(Date.parse(dateStr)):null,
+                expandFillToThePast = dateObject && dateObject.getTime() < fillStart.getTime(),
+                expandFillToTheFuture = dateObject && !expandFillToThePast;
+
+              fillStart = expandFillToThePast ? dateObject : fillStart;
+              fillEnd = expandFillToTheFuture ? dateObject : fillEnd;
+
+              return dateObject;
           });
         });
         return position;
       });
     });
+
+    var fillBefore = _.map(_.range(fillStart.getFullYear(), _.first(data.x).getFullYear()), util.yearStart),
+      fillAfter = _.map(_.range(_.last(data.x).getFullYear() + 1, fillEnd.getFullYear() + 1), util.yearStart);
+
+    data.x = _.flatten([fillBefore, data.x, fillAfter]);
+    data.y = _.flatten([_.fill(Array(fillBefore.length), [0]), data.y, _.fill(Array(fillAfter.length), [0])]);
+
+    console.log(data);
+
     return data;
   }
 

@@ -14,6 +14,7 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
         groupingThreshold = globalConfig.groupingThreshold || 1;
 
 
+
       var chartConfigs = {
 
         pie: {

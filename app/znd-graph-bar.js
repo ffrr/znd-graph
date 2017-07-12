@@ -36,7 +36,7 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
           top: 15
         },
         numberFormat = support.numberFormat(),
-        minBarHeight = 3;
+        minBarHeight = 0;
 
       var clampItemToMinimumHeight = function(number) {
           var onePixelEquivalent = max / innerHeight;
@@ -302,10 +302,11 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
         },
 
         initialize = function() {
-          columnWidth = config.width / (config.segments - 0.5);
+          var columnWidthRatio = data.x.length > config.segments ? config.segments - 0.5:data.x.length;
+          columnWidth = config.width / columnWidthRatio;
           barWidth = columnWidth / 4;
           innerWidth = config.width - columnWidth;
-          outerWidth = columnWidth * (data.x.length - 1);
+          outerWidth = columnWidth * Math.max(data.x.length - 1, 1);
           innerHeight = config.height - (xAxisPadding);
 
           navig = config.navig;
