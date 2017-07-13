@@ -9,7 +9,7 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
     domready(function() {
       var containerSelector = globalConfig.containerSelector || "#graph",
         data = support.preprocessGraphInputData(unprocessedData),
-        segments = globalConfig.visibleSegments || 5,
+        segments = data.x.length < 5 ? data.x.length:5,
         initialWidth = $(containerSelector).width() - 15,
         groupingThreshold = globalConfig.groupingThreshold || 1;
 

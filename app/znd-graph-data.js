@@ -25,9 +25,9 @@ define("znd-graph-data", [], function() {
 
   var data = {
     series: ["MIM, s.r.o."],
-    x: [2007],
+    x: [2002],
     y: [[268870.74]],
-    timeline: [[{ position : "Spoločník v.o.s. / s.r.o.", ranges : [["2004-01-23", null ]]}]]
+    timeline: [[{ position : "Spoločník v.o.s. / s.r.o.", ranges : [["2010-01-23", "2010-01-24" ]]}]]
   };
 
     return data;
