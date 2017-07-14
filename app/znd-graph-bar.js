@@ -36,7 +36,7 @@ define("znd-graph-bar", ["znd-graph-support", "lodash", "d3", "jquery",
           top: 15
         },
         numberFormat = support.numberFormat(),
-        minBarHeight = 0;
+        minBarHeight = 1;
 
       var clampItemToMinimumHeight = function(number) {
           var onePixelEquivalent = max / innerHeight;

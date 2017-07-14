@@ -301,15 +301,6 @@ define("znd-graph-support", ["lodash", "d3", "util",  "znd-graph-locale", "d3-ti
     };
   };
 
-
-  var data = {
-    series: ["MIM, s.r.o."],
-    x: [2007],
-    y: [[268870.74]],
-    timeline: [[{ position : "Spoločník v.o.s. / s.r.o.", ranges : [["2004-01-23", null ]]}]]
-  };
-
-
   var preprocessInputs = function(data) {
 
     // convert to date objects
@@ -343,10 +334,12 @@ define("znd-graph-support", ["lodash", "d3", "util",  "znd-graph-locale", "d3-ti
     var fillBefore = _.map(_.range(fillStart.getFullYear(), _.first(data.x).getFullYear()), util.yearStart),
       fillAfter = _.map(_.range(_.last(data.x).getFullYear() + 1, fillEnd.getFullYear() + 1), util.yearStart);
 
-    data.x = _.flatten([fillBefore, data.x, fillAfter]);
-    data.y = _.flatten([_.fill(Array(fillBefore.length), [0]), data.y, _.fill(Array(fillAfter.length), [0])]);
+    console.log(data.y);
 
-    console.log(data);
+    data.x = _.flatten([fillBefore, data.x, fillAfter]);
+    data.y = _.flatten([_.fill(Array(fillBefore.length), _.fill(Array(data.series.length), 0)), data.y, _.fill(Array(fillAfter.length),  _.fill(Array(data.series.length), 0))]);
+
+    console.log(data.y);
 
     return data;
   }

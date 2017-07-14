@@ -420,7 +420,6 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
           front.transition().attr({
             "x1": function(d) {
-              console.log(d.from, timeScale(d.from));
               return timeScale(d.from) + config.tipCompensation + linePadding.left;
             },
             "x2": function(d) {
