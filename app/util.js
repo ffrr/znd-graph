@@ -1,6 +1,6 @@
 define("util", ["lodash", "jquery", "d3"], function(_, $, d3) {
   "use strict";
-  var dateTemplate = _.template("<%= date.getDate() %>. <%= date.getMonth() + 1 %>. <%= date.getFullYear() %>"),
+  var dateTemplate = _.template("<@= date.getDate() @>. <@= date.getMonth() + 1 @>. <@= date.getFullYear() @>"),
     document = window.document;
 
   var export_ = {

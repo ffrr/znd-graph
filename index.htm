@@ -8,30 +8,30 @@
 
   <script type="text/template" class="template" id="tpl-controls">
 			<ul class="list">
-      <% _.each(model, function(item) {%>
-        <li data-series="<%= item.seriesName %>" class="company active"><!-- active hidden group -->
+      <@ _.each(model, function(item) {@>
+        <li data-series="<@= item.seriesName @>" class="company active"><!-- active hidden group -->
       		<label style="color: white;">
       			<input type="checkbox">
-            <b style="color: <%= item.color %>">
+            <b style="color: <@= item.color @>">
               <svg version="1.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="12px" height="12px" viewBox="0 0 12 12" enable-background="new 0 0 12 12" xml:space="preserve">
-                <circle cx="6" cy="6" r="6" fill="<%= item.color %>"></circle>
+                <circle cx="6" cy="6" r="6" fill="<@= item.color @>"></circle>
               </svg>
-              <%= item.seriesName %>
-              <i><%= item.aggregatedCount %></i>
-              <br/><%= item.percentage %>%
+              <@= item.seriesName @>
+              <i><@= item.aggregatedCount @></i>
+              <br/><@= item.percentage @>%
             </b>
-            <%= item.sum %>
+            <@= item.sum @>
       		</label>
       	</li>
-      <% }); %>
+      <@ }); @>
       <li class="desktop">
     		<a href="#" id="break-group" class="icon">
-          <%= more %>
+          <@= more @>
           <svg><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#show-more"></use></svg>
         </a>
     		<a href="#" id="join-group" class="icon">
           <svg><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#show-less"></use></svg>
-          <%= less %>
+          <@= less @>
         </a>
     	</li>
     </ul>
@@ -53,21 +53,21 @@
     <div class="navigation" id="navig-mobile">
     <div id="years" class="block">
       <div class="block back">
-        <% if (prevYear) { %><a class="icon">
+        <@ if (prevYear) { @><a class="icon">
           <svg>
             <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#year-prev"></use>
-          </svg><%= prevYear %>
-        </a><% } %>
+          </svg><@= prevYear @>
+        </a><@ } @>
       </div>
-      <h3><%= currentYear %> <br/> <i><%= currentTotal %></i></></h3>
+      <h3><@= currentYear @> <br/> <i><@= currentTotal @></i></></h3>
 
       <div class="block forward">
-         <% if (nextYear) { %><a class="icon"><%= nextYear %>
+         <@ if (nextYear) { @><a class="icon"><@= nextYear @>
           <svg>
             <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="app/3rd-party/svg/sprite.svg#year-next">
             </use>
           </svg>
-        </a><% } %>
+        </a><@ } @>
       </div>
     </div>
     </div>
@@ -75,13 +75,13 @@
 
   <script type="text/template" class="template" id="tpl-tooltip">
     <ul>
-      <% _.each(model, function(itemData) {%>
+      <@ _.each(model, function(itemData) {@>
       <li>
-        <span class="bullet" style="color: <%= itemData.color %>"><span>&#8226;</span></span>
-        <em class="company"><%= itemData.company %></em>
-        <span class="amount"><%= itemData.amount %></span>
+        <span class="bullet" style="color: <@= itemData.color @>"><span>&#8226;</span></span>
+        <em class="company"><@= itemData.company @></em>
+        <span class="amount"><@= itemData.amount @></span>
       </li>
-      <% }); %>
+      <@ }); @>
     </ul>
   </script>
 

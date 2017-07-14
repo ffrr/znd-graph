@@ -7,6 +7,11 @@ require(["znd-graph-core", "znd-graph-navigation", "znd-graph-controls", "znd-gr
     "use strict";
 
     domready(function() {
+
+      _.templateSettings = {
+        interpolate: /<@=([\s\S]+?)@>/g,
+        evaluate: /<@([\s\S]+?)@>/g
+      };
       var containerSelector = globalConfig.containerSelector || "#graph",
         data = support.preprocessGraphInputData(unprocessedData),
         segments = data.x.length < 5 ? data.x.length:5,

@@ -172,9 +172,9 @@ define("znd-graph-timeline", ["znd-graph-support", "lodash", "d3", "jquery",
 
         renderTooltipTemplate = function(model) {
 
-          var company = "<em class=\"company\"><%= company %></em>",
-            position = "<span class=\"position\"><%= position %></span>",
-            ranges = "<span class=\"ranges\"><%= formatDateRanges(ranges) %></span>",
+          var company = "<em class=\"company\"><@= company @></em>",
+            position = "<span class=\"position\"><@= position @></span>",
+            ranges = "<span class=\"ranges\"><@= formatDateRanges(ranges) @></span>",
             tpl = _.template(["<div class=\"tooltip-timeline\">", company, position, ranges, "</div>"].join(""));
 
           return tpl(model);
